@@ -3,7 +3,7 @@
 import { useState, useRef, useEffect, useCallback, useMemo } from "react";
 import ReactMarkdown from "react-markdown";
 import { Send, Square, Sparkles, User, Locate } from "lucide-react";
-import { cn } from "@/lib/utils";
+import { cn, extractSectionRefs } from "@/lib/utils";
 import type { ChatMessage, UserPosition } from "@/lib/types";
 import QuickActions from "./quick-actions";
 
@@ -14,6 +14,7 @@ interface ChatSidebarProps {
   onClearSelection: () => void;
   onHighlight?: (text: string) => void;
   onExpandRequest?: () => void;
+  onActiveRefsChange?: (refs: string[]) => void;
 }
 
 export default function ChatSidebar({
@@ -23,6 +24,7 @@ export default function ChatSidebar({
   onClearSelection,
   onHighlight,
   onExpandRequest,
+  onActiveRefsChange,
 }: ChatSidebarProps) {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [input, setInput] = useState("");
@@ -39,6 +41,20 @@ export default function ChatSidebar({
   useEffect(() => {
     scrollToBottom();
   }, [messages, streamingContent, scrollToBottom]);
+
+  // Extract section references from the latest assistant response
+  useEffect(() => {
+    // Use streaming content if actively streaming, otherwise the latest assistant message
+    const content =
+      streamingContent ||
+      [...messages].reverse().find((m) => m.role === "assistant")?.content;
+    if (!content) {
+      onActiveRefsChange?.([]);
+      return;
+    }
+    const refs = extractSectionRefs(content);
+    onActiveRefsChange?.(refs);
+  }, [streamingContent, messages, onActiveRefsChange]);
 
   // When text is selected in the document, prefill the input
   useEffect(() => {

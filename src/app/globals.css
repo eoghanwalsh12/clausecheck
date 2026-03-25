@@ -136,3 +136,22 @@ body {
   from { background-color: rgb(253 224 71 / 0); }
   to { background-color: rgb(253 224 71 / 0.5); }
 }
+
+/* Active section reference highlights (auto from AI response) */
+.section-ref-span {
+  background-color: rgb(99 102 241 / 0.3) !important;
+  border-radius: 2px;
+}
+
+/* DOCX section highlight — highlights the full paragraph/heading */
+.section-ref-hl {
+  background-color: rgb(99 102 241 / 0.1) !important;
+  border-left: 3px solid rgb(99 102 241) !important;
+  padding-left: 8px !important;
+  margin-left: -11px !important;
+  border-radius: 0 4px 4px 0;
+  transition: background-color 0.3s;
+}
+.section-ref-hl:first-of-type {
+  scroll-margin-top: 2rem;
+}

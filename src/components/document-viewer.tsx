@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback, useRef, useEffect } from "react";
+import { useState, useCallback, useRef, useEffect, useMemo } from "react";
 import { Document, Page, pdfjs } from "react-pdf";
 import "react-pdf/dist/Page/AnnotationLayer.css";
 import "react-pdf/dist/Page/TextLayer.css";
@@ -10,6 +10,7 @@ import {
   ZoomIn,
   ZoomOut,
   Maximize2,
+  BookOpen,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -23,6 +24,31 @@ interface DocumentViewerProps {
   onTextSelect?: (text: string) => void;
   highlightText?: string | null;
   documentText?: string;
+  activeRefs?: string[];
+}
+
+/**
+ * For each ref like "Article 3", find its character position in the full doc text.
+ * Returns a map of ref → estimated page number.
+ */
+function estimateRefPages(
+  refs: string[],
+  documentText: string,
+  numPages: number
+): Map<string, number> {
+  const result = new Map<string, number>();
+  if (!documentText || numPages === 0) return result;
+  const charsPerPage = documentText.length / numPages;
+  const lowerText = documentText.toLowerCase();
+
+  for (const ref of refs) {
+    const idx = lowerText.indexOf(ref.toLowerCase());
+    if (idx !== -1) {
+      const page = Math.min(numPages, Math.max(1, Math.ceil(idx / charsPerPage)));
+      result.set(ref, page);
+    }
+  }
+  return result;
 }
 
 export default function DocumentViewer({
@@ -32,6 +58,7 @@ export default function DocumentViewer({
   onTextSelect,
   highlightText,
   documentText,
+  activeRefs = [],
 }: DocumentViewerProps) {
   const [numPages, setNumPages] = useState<number>(0);
   const [currentPage, setCurrentPage] = useState(1);
@@ -54,11 +81,17 @@ export default function DocumentViewer({
     }
   }, [onTextSelect]);
 
-  // DOCX highlighting: find and highlight matching text
+  // Estimate which pages contain each active ref
+  const refPageMap = useMemo(
+    () => estimateRefPages(activeRefs, documentText || "", numPages),
+    [activeRefs, documentText, numPages]
+  );
+
+  // ─── DOCX: highlight matching text on click ────────────────────────────────
   useEffect(() => {
     if (fileType !== "docx" || !docxRef.current || !highlightText) return;
 
-    // Clear old highlights
+    // Clear old click highlights
     docxRef.current.querySelectorAll(".ai-highlight").forEach((el) => {
       const parent = el.parentNode;
       if (parent) {
@@ -102,7 +135,34 @@ export default function DocumentViewer({
     }
   }, [highlightText, fileType]);
 
-  // PDF highlighting: navigate to the page containing the quoted text
+  // ─── DOCX: auto-highlight active section refs ──────────────────────────────
+  useEffect(() => {
+    if (fileType !== "docx" || !docxRef.current) return;
+
+    // Clear old section highlights
+    docxRef.current.querySelectorAll(".section-ref-hl").forEach((el) => {
+      el.classList.remove("section-ref-hl");
+    });
+
+    if (!activeRefs.length) return;
+
+    // Walk all elements and check if their text starts with a ref
+    const allEls = docxRef.current.querySelectorAll("p, h1, h2, h3, h4, h5, h6, li, div");
+    const refLower = activeRefs.map((r) => r.toLowerCase());
+
+    Array.from(allEls).forEach((el) => {
+      const text = (el.textContent || "").toLowerCase().trim();
+      for (const ref of refLower) {
+        // Match if the element text starts with or contains the ref as a heading
+        if (text.startsWith(ref) || text.includes(ref + ".") || text.includes(ref + ":") || text.includes(ref + " ")) {
+          (el as HTMLElement).classList.add("section-ref-hl");
+          break;
+        }
+      }
+    });
+  }, [activeRefs, fileType]);
+
+  // ─── PDF: navigate to page on click-highlight ──────────────────────────────
   useEffect(() => {
     if (fileType !== "pdf" || !highlightText || !documentText || numPages === 0)
       return;
@@ -121,13 +181,38 @@ export default function DocumentViewer({
     }
   }, [highlightText, documentText, numPages, fileType]);
 
-  // PDF text layer highlighting: after page renders, highlight matching spans
+  // ─── PDF: highlight text layer spans (click-highlight + active refs) ───────
   useEffect(() => {
-    if (fileType !== "pdf" || !highlightText || !pdfContainerRef.current)
-      return;
+    if (fileType !== "pdf" || !pdfContainerRef.current) return;
 
-    const searchStr = highlightText.slice(0, 60).toLowerCase().trim();
-    if (searchStr.length < 5) return;
+    // Collect all search terms: click highlight + active refs
+    const searchTerms: { text: string; className: string }[] = [];
+
+    if (highlightText && highlightText.trim().length >= 5) {
+      searchTerms.push({
+        text: highlightText.slice(0, 60).toLowerCase().trim(),
+        className: "ai-highlight-span",
+      });
+    }
+
+    for (const ref of activeRefs) {
+      searchTerms.push({
+        text: ref.toLowerCase(),
+        className: "section-ref-span",
+      });
+    }
+
+    if (searchTerms.length === 0) {
+      // Clear all highlights
+      const timer = setTimeout(() => {
+        pdfContainerRef.current
+          ?.querySelectorAll(".ai-highlight-span, .section-ref-span")
+          .forEach((el) => {
+            el.classList.remove("ai-highlight-span", "section-ref-span");
+          });
+      }, 100);
+      return () => clearTimeout(timer);
+    }
 
     // Wait for text layer to render
     const timer = setTimeout(() => {
@@ -135,15 +220,16 @@ export default function DocumentViewer({
       if (!container) return;
 
       // Clear old highlights
-      container.querySelectorAll(".ai-highlight-span").forEach((el) => {
-        el.classList.remove("ai-highlight-span");
-      });
+      container
+        .querySelectorAll(".ai-highlight-span, .section-ref-span")
+        .forEach((el) => {
+          el.classList.remove("ai-highlight-span", "section-ref-span");
+        });
 
-      // Search text layer spans for a match
+      // Build running text from text layer spans
       const spans = Array.from(
         container.querySelectorAll(".react-pdf__Page__textContent span")
       );
-      // Build running text to match multi-span phrases
       let runningText = "";
       const spanMap: { start: number; end: number; el: Element }[] = [];
 
@@ -154,40 +240,70 @@ export default function DocumentViewer({
         spanMap.push({ start, end: runningText.length, el: span });
       }
 
-      const matchIdx = runningText
-        .toLowerCase()
-        .indexOf(searchStr.slice(0, 40));
-      if (matchIdx !== -1) {
-        const matchEnd = matchIdx + searchStr.slice(0, 40).length;
-        for (const { start, end, el } of spanMap) {
-          if (end > matchIdx && start < matchEnd) {
-            (el as HTMLElement).classList.add("ai-highlight-span");
+      const lowerRunning = runningText.toLowerCase();
+
+      for (const { text, className } of searchTerms) {
+        // Find ALL occurrences of this term
+        let searchIdx = 0;
+        while (searchIdx < lowerRunning.length) {
+          const matchIdx = lowerRunning.indexOf(text, searchIdx);
+          if (matchIdx === -1) break;
+
+          const matchEnd = matchIdx + text.length;
+
+          // Highlight all spans that overlap with this match
+          for (const { start, end, el } of spanMap) {
+            if (end > matchIdx && start < matchEnd) {
+              (el as HTMLElement).classList.add(className);
+            }
           }
+
+          searchIdx = matchIdx + text.length;
         }
-        // Scroll to first highlighted span
-        const firstHighlight = container.querySelector(".ai-highlight-span");
-        firstHighlight?.scrollIntoView({ behavior: "smooth", block: "center" });
       }
     }, 600);
 
     return () => clearTimeout(timer);
-  }, [highlightText, fileType, currentPage]);
+  }, [highlightText, activeRefs, fileType, currentPage]);
 
+  // ─── DOCX render ───────────────────────────────────────────────────────────
   if (fileType === "docx" && htmlContent) {
     return (
-      <div
-        className="h-full overflow-auto bg-white"
-        onMouseUp={handleTextSelection}
-      >
+      <div className="flex h-full flex-col">
+        {/* Active refs bar for DOCX */}
+        {activeRefs.length > 0 && (
+          <div className="flex items-center gap-2 border-b border-[var(--border)] bg-indigo-50 dark:bg-indigo-950/30 px-3 py-1.5 overflow-x-auto">
+            <BookOpen className="h-3.5 w-3.5 shrink-0 text-indigo-500" />
+            <span className="shrink-0 text-[10px] font-medium text-indigo-600 dark:text-indigo-400">
+              Referenced:
+            </span>
+            <div className="flex gap-1.5 flex-wrap">
+              {activeRefs.map((ref) => (
+                <span
+                  key={ref}
+                  className="rounded-full bg-indigo-100 dark:bg-indigo-900/50 px-2 py-0.5 text-[10px] font-medium text-indigo-700 dark:text-indigo-300"
+                >
+                  {ref}
+                </span>
+              ))}
+            </div>
+          </div>
+        )}
         <div
-          ref={docxRef}
-          className="prose prose-sm max-w-none p-8 text-gray-900"
-          dangerouslySetInnerHTML={{ __html: htmlContent }}
-        />
+          className="flex-1 overflow-auto bg-white"
+          onMouseUp={handleTextSelection}
+        >
+          <div
+            ref={docxRef}
+            className="prose prose-sm max-w-none p-8 text-gray-900"
+            dangerouslySetInnerHTML={{ __html: htmlContent }}
+          />
+        </div>
       </div>
     );
   }
 
+  // ─── PDF render ────────────────────────────────────────────────────────────
   return (
     <div className="flex h-full flex-col">
       {/* PDF toolbar */}
@@ -236,6 +352,39 @@ export default function DocumentViewer({
           </button>
         </div>
       </div>
+
+      {/* Active refs navigation bar */}
+      {activeRefs.length > 0 && (
+        <div className="flex items-center gap-2 border-b border-[var(--border)] bg-indigo-50 dark:bg-indigo-950/30 px-3 py-1.5 overflow-x-auto">
+          <BookOpen className="h-3.5 w-3.5 shrink-0 text-indigo-500" />
+          <span className="shrink-0 text-[10px] font-medium text-indigo-600 dark:text-indigo-400">
+            Referenced:
+          </span>
+          <div className="flex gap-1.5 flex-wrap">
+            {activeRefs.map((ref) => {
+              const page = refPageMap.get(ref);
+              return (
+                <button
+                  key={ref}
+                  onClick={() => {
+                    if (page) setCurrentPage(page);
+                  }}
+                  className={cn(
+                    "rounded-full px-2 py-0.5 text-[10px] font-medium transition-colors",
+                    page === currentPage
+                      ? "bg-indigo-500 text-white"
+                      : "bg-indigo-100 dark:bg-indigo-900/50 text-indigo-700 dark:text-indigo-300 hover:bg-indigo-200 dark:hover:bg-indigo-800/50"
+                  )}
+                  title={page ? `Go to page ${page}` : ref}
+                >
+                  {ref}
+                  {page ? ` (p.${page})` : ""}
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      )}
 
       {/* PDF content */}
       <div

@@ -36,6 +36,7 @@ export default function WorkspacePage() {
   const [sidebarExpanded, setSidebarExpanded] = useState(false);
   const [selectedText, setSelectedText] = useState<string | null>(null);
   const [highlightText, setHighlightText] = useState<string | null>(null);
+  const [activeRefs, setActiveRefs] = useState<string[]>([]);
 
   const handleFileUpload = useCallback(
     async (file: File) => {
@@ -113,6 +114,10 @@ export default function WorkspacePage() {
 
   const handleExpandRequest = useCallback(() => {
     setSidebarExpanded(true);
+  }, []);
+
+  const handleActiveRefsChange = useCallback((refs: string[]) => {
+    setActiveRefs(refs);
   }, []);
 
   // Upload screen
@@ -235,6 +240,7 @@ export default function WorkspacePage() {
               onTextSelect={handleTextSelect}
               highlightText={highlightText}
               documentText={document.text}
+              activeRefs={activeRefs}
             />
           </div>
         </div>
@@ -261,6 +267,7 @@ export default function WorkspacePage() {
               onClearSelection={() => setSelectedText(null)}
               onHighlight={handleHighlight}
               onExpandRequest={handleExpandRequest}
+              onActiveRefsChange={handleActiveRefsChange}
             />
           </div>
         )}
