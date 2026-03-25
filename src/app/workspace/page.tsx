@@ -9,6 +9,7 @@ import {
   PanelRightOpen,
   PanelRightClose,
   UserCheck,
+  Minimize2,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { DocumentContext, UserPosition } from "@/lib/types";
@@ -32,7 +33,9 @@ export default function WorkspacePage() {
   const [isUploading, setIsUploading] = useState(false);
   const [error, setError] = useState("");
   const [sidebarOpen, setSidebarOpen] = useState(true);
+  const [sidebarExpanded, setSidebarExpanded] = useState(false);
   const [selectedText, setSelectedText] = useState<string | null>(null);
+  const [highlightText, setHighlightText] = useState<string | null>(null);
 
   const handleFileUpload = useCallback(
     async (file: File) => {
@@ -104,6 +107,14 @@ export default function WorkspacePage() {
     setSelectedText(text);
   }, []);
 
+  const handleHighlight = useCallback((text: string) => {
+    setHighlightText(text);
+  }, []);
+
+  const handleExpandRequest = useCallback(() => {
+    setSidebarExpanded(true);
+  }, []);
+
   // Upload screen
   if (!document) {
     return (
@@ -162,7 +173,7 @@ export default function WorkspacePage() {
 
       <div className="flex h-[calc(100vh-3.5rem)] overflow-hidden">
         {/* Document panel */}
-        <div className={cn("flex-1 flex flex-col min-w-0", sidebarOpen ? "" : "")}>
+        <div className={cn("flex-1 flex flex-col min-w-0")}>
           {/* Document toolbar */}
           <div className="flex items-center justify-between border-b border-[var(--border)] bg-[var(--card)] px-3 py-2">
             <div className="flex items-center gap-2 min-w-0">
@@ -185,8 +196,24 @@ export default function WorkspacePage() {
                 <UserCheck className="h-3.5 w-3.5" />
                 {position ? position.role : "Set role"}
               </button>
+              {sidebarOpen && sidebarExpanded && (
+                <button
+                  onClick={() => setSidebarExpanded(false)}
+                  className="rounded-md p-1 text-[var(--muted-foreground)] hover:bg-[var(--accent)]"
+                  title="Minimize sidebar"
+                >
+                  <Minimize2 className="h-4 w-4" />
+                </button>
+              )}
               <button
-                onClick={() => setSidebarOpen(!sidebarOpen)}
+                onClick={() => {
+                  if (sidebarOpen) {
+                    setSidebarOpen(false);
+                    setSidebarExpanded(false);
+                  } else {
+                    setSidebarOpen(true);
+                  }
+                }}
                 className="rounded-md p-1 text-[var(--muted-foreground)] hover:bg-[var(--accent)]"
                 title={sidebarOpen ? "Close assistant" : "Open assistant"}
               >
@@ -206,6 +233,8 @@ export default function WorkspacePage() {
               fileType={document.fileType}
               htmlContent={document.htmlContent}
               onTextSelect={handleTextSelect}
+              highlightText={highlightText}
+              documentText={document.text}
             />
           </div>
         </div>
@@ -219,12 +248,19 @@ export default function WorkspacePage() {
 
         {/* Chat sidebar */}
         {sidebarOpen && (
-          <div className="w-[420px] shrink-0 border-l border-[var(--border)]">
+          <div
+            className={cn(
+              "shrink-0 border-l border-[var(--border)] transition-all duration-300 ease-in-out",
+              sidebarExpanded ? "w-[55%]" : "w-[420px]"
+            )}
+          >
             <ChatSidebar
               documentText={document.text}
               position={position}
               selectedText={selectedText}
               onClearSelection={() => setSelectedText(null)}
+              onHighlight={handleHighlight}
+              onExpandRequest={handleExpandRequest}
             />
           </div>
         )}

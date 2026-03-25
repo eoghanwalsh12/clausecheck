@@ -1,8 +1,8 @@
 "use client";
 
-import { useState, useRef, useEffect, useCallback } from "react";
+import { useState, useRef, useEffect, useCallback, useMemo } from "react";
 import ReactMarkdown from "react-markdown";
-import { Send, Square, Sparkles, User } from "lucide-react";
+import { Send, Square, Sparkles, User, Locate } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { ChatMessage, UserPosition } from "@/lib/types";
 import QuickActions from "./quick-actions";
@@ -12,6 +12,8 @@ interface ChatSidebarProps {
   position: UserPosition | null;
   selectedText: string | null;
   onClearSelection: () => void;
+  onHighlight?: (text: string) => void;
+  onExpandRequest?: () => void;
 }
 
 export default function ChatSidebar({
@@ -19,6 +21,8 @@ export default function ChatSidebar({
   position,
   selectedText,
   onClearSelection,
+  onHighlight,
+  onExpandRequest,
 }: ChatSidebarProps) {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [input, setInput] = useState("");
@@ -170,9 +174,42 @@ export default function ChatSidebar({
 
   const handleQuickAction = useCallback(
     (prompt: string) => {
+      onExpandRequest?.();
       sendMessage(prompt);
     },
-    [sendMessage]
+    [sendMessage, onExpandRequest]
+  );
+
+  // Custom markdown components with clickable blockquotes
+  const markdownComponents = useMemo(
+    () => ({
+      blockquote: ({
+        children,
+        ...props
+      }: React.ComponentPropsWithoutRef<"blockquote"> & {
+        children?: React.ReactNode;
+      }) => (
+        <blockquote
+          onClick={(e: React.MouseEvent<HTMLQuoteElement>) => {
+            const text = (
+              e.currentTarget as HTMLElement
+            ).textContent?.trim();
+            if (text && onHighlight) {
+              onHighlight(text);
+            }
+          }}
+          title="Click to find in document"
+          {...props}
+        >
+          <span className="inline-flex items-center gap-1 text-[10px] font-medium text-amber-600 dark:text-amber-400 mb-0.5 not-italic">
+            <Locate className="h-3 w-3" />
+            Document reference — click to locate
+          </span>
+          {children}
+        </blockquote>
+      ),
+    }),
+    [onHighlight]
   );
 
   const isEmpty = messages.length === 0 && !isStreaming;
@@ -229,8 +266,10 @@ export default function ChatSidebar({
                   {msg.role === "user" ? (
                     <p className="text-sm whitespace-pre-wrap">{msg.content}</p>
                   ) : (
-                    <div className="prose prose-sm max-w-none text-sm text-[var(--foreground)] prose-headings:text-[var(--foreground)] prose-p:text-[var(--foreground)] prose-li:text-[var(--foreground)] prose-strong:text-[var(--foreground)] prose-code:text-[var(--foreground)] prose-code:bg-[var(--muted)] prose-code:rounded prose-code:px-1">
-                      <ReactMarkdown>{msg.content}</ReactMarkdown>
+                    <div className="chat-prose max-w-none text-sm text-[var(--foreground)]">
+                      <ReactMarkdown components={markdownComponents}>
+                        {msg.content}
+                      </ReactMarkdown>
                     </div>
                   )}
                 </div>
@@ -243,8 +282,10 @@ export default function ChatSidebar({
                 <div className="mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-[var(--accent)] text-[var(--accent-foreground)] text-xs">
                   <Sparkles className="h-3.5 w-3.5" />
                 </div>
-                <div className="prose prose-sm max-w-none min-w-0 flex-1 text-sm text-[var(--foreground)] prose-headings:text-[var(--foreground)] prose-p:text-[var(--foreground)] prose-li:text-[var(--foreground)] prose-strong:text-[var(--foreground)]">
-                  <ReactMarkdown>{streamingContent}</ReactMarkdown>
+                <div className="chat-prose max-w-none min-w-0 flex-1 text-sm text-[var(--foreground)]">
+                  <ReactMarkdown components={markdownComponents}>
+                    {streamingContent}
+                  </ReactMarkdown>
                   <span className="inline-block h-4 w-1.5 animate-pulse bg-[var(--foreground)]" />
                 </div>
               </div>
