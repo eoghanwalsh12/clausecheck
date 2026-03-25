@@ -98,7 +98,13 @@ export async function POST(request: NextRequest) {
       throw new Error("Unexpected response format");
     }
 
-    const analysis = JSON.parse(content.text);
+    // Strip markdown code fences if Claude wraps the JSON
+    let jsonText = content.text.trim();
+    if (jsonText.startsWith("```")) {
+      jsonText = jsonText.replace(/^```(?:json)?\n?/, "").replace(/\n?```$/, "");
+    }
+
+    const analysis = JSON.parse(jsonText);
 
     // Add metadata
     analysis.id = crypto.randomUUID();
