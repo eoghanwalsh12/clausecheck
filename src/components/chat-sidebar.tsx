@@ -15,6 +15,8 @@ interface ChatSidebarProps {
   onHighlight?: (text: string) => void;
   onExpandRequest?: () => void;
   onActiveRefsChange?: (refs: string[]) => void;
+  initialMessages?: ChatMessage[];
+  onMessagesChange?: (messages: ChatMessage[]) => void;
 }
 
 export default function ChatSidebar({
@@ -25,14 +27,23 @@ export default function ChatSidebar({
   onHighlight,
   onExpandRequest,
   onActiveRefsChange,
+  initialMessages,
+  onMessagesChange,
 }: ChatSidebarProps) {
-  const [messages, setMessages] = useState<ChatMessage[]>([]);
+  const [messages, setMessages] = useState<ChatMessage[]>(initialMessages ?? []);
   const [input, setInput] = useState("");
   const [isStreaming, setIsStreaming] = useState(false);
   const [streamingContent, setStreamingContent] = useState("");
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
   const abortRef = useRef<AbortController | null>(null);
+
+  // Notify parent when messages change (for persistence)
+  useEffect(() => {
+    if (messages.length > 0) {
+      onMessagesChange?.(messages);
+    }
+  }, [messages, onMessagesChange]);
 
   const scrollToBottom = useCallback(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });

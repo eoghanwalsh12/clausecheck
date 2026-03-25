@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import localFont from "next/font/local";
-import Link from "next/link";
-import { FileText } from "lucide-react";
+import { AuthProvider } from "@/lib/auth-context";
+import NavBar from "@/components/nav-bar";
 import "./globals.css";
 
 const geistSans = localFont({
@@ -31,23 +31,10 @@ export default function RootLayout({
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
-        <nav className="sticky top-0 z-40 border-b border-[var(--border)] bg-[var(--background)]/80 backdrop-blur-sm">
-          <div className="mx-auto flex h-14 max-w-full items-center justify-between px-4">
-            <Link href="/" className="flex items-center gap-2 font-semibold">
-              <FileText className="h-5 w-5" />
-              ClauseCheck
-            </Link>
-            <div className="flex items-center gap-4">
-              <Link
-                href="/workspace"
-                className="text-sm text-[var(--muted-foreground)] transition-colors hover:text-[var(--foreground)]"
-              >
-                Open Document
-              </Link>
-            </div>
-          </div>
-        </nav>
-        <main>{children}</main>
+        <AuthProvider>
+          <NavBar />
+          <main>{children}</main>
+        </AuthProvider>
       </body>
     </html>
   );

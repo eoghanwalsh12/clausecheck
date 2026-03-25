@@ -1,6 +1,7 @@
 "use client";
 
-import { useState, useCallback } from "react";
+import { Suspense, useState, useCallback, useEffect, useRef } from "react";
+import { useSearchParams } from "next/navigation";
 import dynamic from "next/dynamic";
 import {
   Upload,
@@ -10,13 +11,15 @@ import {
   PanelRightClose,
   UserCheck,
   Minimize2,
+  Loader2,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
-import type { DocumentContext, UserPosition } from "@/lib/types";
+import type { DocumentContext, UserPosition, ChatMessage } from "@/lib/types";
+import { useAuth } from "@/lib/auth-context";
+import { supabase } from "@/lib/supabase";
 import ChatSidebar from "@/components/chat-sidebar";
 import PositionSelector from "@/components/position-selector";
 
-// Dynamic import for PDF viewer (needs browser APIs)
 const DocumentViewer = dynamic(() => import("@/components/document-viewer"), {
   ssr: false,
   loading: () => (
@@ -27,10 +30,29 @@ const DocumentViewer = dynamic(() => import("@/components/document-viewer"), {
 });
 
 export default function WorkspacePage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="flex h-[calc(100vh-3.5rem)] items-center justify-center">
+          <Loader2 className="h-6 w-6 animate-spin text-[var(--muted-foreground)]" />
+        </div>
+      }
+    >
+      <WorkspaceContent />
+    </Suspense>
+  );
+}
+
+function WorkspaceContent() {
+  const searchParams = useSearchParams();
+  const { user } = useAuth();
+  const projectId = searchParams.get("project");
+
   const [document, setDocument] = useState<DocumentContext | null>(null);
   const [position, setPosition] = useState<UserPosition | null>(null);
   const [showPositionSelector, setShowPositionSelector] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
+  const [isLoadingProject, setIsLoadingProject] = useState(!!projectId);
   const [error, setError] = useState("");
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [sidebarExpanded, setSidebarExpanded] = useState(false);
@@ -38,13 +60,119 @@ export default function WorkspacePage() {
   const [highlightText, setHighlightText] = useState<string | null>(null);
   const [activeRefs, setActiveRefs] = useState<string[]>([]);
 
+  // Project persistence state
+  const [currentProjectId, setCurrentProjectId] = useState<string | null>(
+    projectId
+  );
+  const [initialChatHistory, setInitialChatHistory] = useState<ChatMessage[]>(
+    []
+  );
+  const saveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+
+  // Load existing project
+  useEffect(() => {
+    if (!projectId || !user) {
+      setIsLoadingProject(false);
+      return;
+    }
+
+    const loadProject = async () => {
+      try {
+        const session = (await supabase.auth.getSession()).data.session;
+        const res = await fetch(`/api/projects/${projectId}`, {
+          headers: { Authorization: `Bearer ${session?.access_token}` },
+        });
+
+        if (!res.ok) {
+          setError("Could not load project. It may have been deleted.");
+          setIsLoadingProject(false);
+          return;
+        }
+
+        const project = await res.json();
+
+        setDocument({
+          fileName: project.file_name,
+          fileType: project.file_type,
+          text: project.document_text,
+          fileUrl: "", // No blob URL for loaded projects
+          htmlContent: project.html_content || undefined,
+        });
+
+        if (project.position_role) {
+          setPosition({
+            role: project.position_role,
+            customDescription: project.position_description || undefined,
+          });
+        }
+
+        if (project.chat_history?.length) {
+          setInitialChatHistory(project.chat_history);
+        }
+
+        setCurrentProjectId(project.id);
+      } catch {
+        setError("Failed to load project.");
+      } finally {
+        setIsLoadingProject(false);
+      }
+    };
+
+    loadProject();
+  }, [projectId, user]);
+
+  // Save chat history (debounced)
+  const saveChatHistory = useCallback(
+    (messages: ChatMessage[]) => {
+      if (!currentProjectId || !user) return;
+
+      if (saveTimeoutRef.current) clearTimeout(saveTimeoutRef.current);
+
+      saveTimeoutRef.current = setTimeout(async () => {
+        const session = (await supabase.auth.getSession()).data.session;
+        await fetch(`/api/projects/${currentProjectId}`, {
+          method: "PATCH",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${session?.access_token}`,
+          },
+          body: JSON.stringify({ chatHistory: messages }),
+        });
+      }, 2000);
+    },
+    [currentProjectId, user]
+  );
+
+  // Save position when it changes
+  const handlePositionSelect = useCallback(
+    async (pos: UserPosition) => {
+      setPosition(pos);
+      setShowPositionSelector(false);
+
+      if (currentProjectId && user) {
+        const session = (await supabase.auth.getSession()).data.session;
+        await fetch(`/api/projects/${currentProjectId}`, {
+          method: "PATCH",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${session?.access_token}`,
+          },
+          body: JSON.stringify({
+            positionRole: pos.role,
+            positionDescription: pos.customDescription || null,
+          }),
+        });
+      }
+    },
+    [currentProjectId, user]
+  );
+
   const handleFileUpload = useCallback(
     async (file: File) => {
       setError("");
       setIsUploading(true);
 
       try {
-        // Parse the document server-side
         const formData = new FormData();
         formData.append("file", file);
 
@@ -60,7 +188,6 @@ export default function WorkspacePage() {
 
         const { text, htmlContent } = await response.json();
 
-        // Create a local URL for the file viewer
         const fileUrl = URL.createObjectURL(file);
         const fileType = file.name.toLowerCase().endsWith(".pdf")
           ? "pdf"
@@ -74,7 +201,35 @@ export default function WorkspacePage() {
           htmlContent,
         });
 
-        // Show position selector after upload
+        // Save project to Supabase if user is signed in
+        if (user) {
+          try {
+            const session = (await supabase.auth.getSession()).data.session;
+            const res = await fetch("/api/projects", {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+                Authorization: `Bearer ${session?.access_token}`,
+              },
+              body: JSON.stringify({
+                fileName: file.name,
+                documentText: text,
+                htmlContent: htmlContent || null,
+                fileType,
+              }),
+            });
+            if (res.ok) {
+              const { id } = await res.json();
+              setCurrentProjectId(id);
+              // Update URL without navigation
+              window.history.replaceState(null, "", `/workspace?project=${id}`);
+            }
+          } catch {
+            // Non-critical — project still works locally
+            console.error("Failed to save project to cloud");
+          }
+        }
+
         setShowPositionSelector(true);
       } catch (err) {
         setError(
@@ -84,7 +239,7 @@ export default function WorkspacePage() {
         setIsUploading(false);
       }
     },
-    []
+    [user]
   );
 
   const handleDrop = useCallback(
@@ -119,6 +274,20 @@ export default function WorkspacePage() {
   const handleActiveRefsChange = useCallback((refs: string[]) => {
     setActiveRefs(refs);
   }, []);
+
+  // Loading state for project load
+  if (isLoadingProject) {
+    return (
+      <div className="flex h-[calc(100vh-3.5rem)] items-center justify-center">
+        <div className="text-center">
+          <Loader2 className="mx-auto h-6 w-6 animate-spin text-[var(--muted-foreground)]" />
+          <p className="mt-2 text-sm text-[var(--muted-foreground)]">
+            Loading project...
+          </p>
+        </div>
+      </div>
+    );
+  }
 
   // Upload screen
   if (!document) {
@@ -155,8 +324,10 @@ export default function WorkspacePage() {
             )}
           </div>
           <p className="mt-3 text-center text-xs text-[var(--muted-foreground)]">
-            Supports PDF and DOCX files up to 10MB. Your document is processed
-            locally and sent to AI for analysis only.
+            Supports PDF and DOCX files up to 10MB.
+            {user
+              ? " Your project will be saved automatically."
+              : " Sign in to save your projects."}
           </p>
         </div>
       </div>
@@ -168,10 +339,7 @@ export default function WorkspacePage() {
     <>
       {showPositionSelector && (
         <PositionSelector
-          onSelect={(pos) => {
-            setPosition(pos);
-            setShowPositionSelector(false);
-          }}
+          onSelect={handlePositionSelect}
           onSkip={() => setShowPositionSelector(false)}
         />
       )}
@@ -268,6 +436,8 @@ export default function WorkspacePage() {
               onHighlight={handleHighlight}
               onExpandRequest={handleExpandRequest}
               onActiveRefsChange={handleActiveRefsChange}
+              initialMessages={initialChatHistory}
+              onMessagesChange={saveChatHistory}
             />
           </div>
         )}

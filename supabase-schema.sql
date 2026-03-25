@@ -38,10 +38,47 @@ create trigger on_auth_user_created
   after insert on auth.users
   for each row execute procedure public.handle_new_user();
 
--- Contract analyses
+-- Projects (documents with their analysis and chat history)
+create table public.projects (
+  id uuid primary key default gen_random_uuid(),
+  user_id uuid references public.profiles(id) on delete cascade not null,
+  file_name text not null,
+  document_text text not null,
+  html_content text,
+  file_type text not null check (file_type in ('pdf', 'docx')),
+  position_role text,
+  position_description text,
+  chat_history jsonb default '[]'::jsonb,
+  updated_at timestamptz default now(),
+  created_at timestamptz default now()
+);
+
+alter table public.projects enable row level security;
+
+create policy "Users can view own projects"
+  on public.projects for select
+  using (auth.uid() = user_id);
+
+create policy "Users can insert own projects"
+  on public.projects for insert
+  with check (auth.uid() = user_id);
+
+create policy "Users can update own projects"
+  on public.projects for update
+  using (auth.uid() = user_id);
+
+create policy "Users can delete own projects"
+  on public.projects for delete
+  using (auth.uid() = user_id);
+
+-- Index for dashboard queries
+create index projects_user_id_updated_at on public.projects(user_id, updated_at desc);
+
+-- Contract analyses (optional structured analysis from the /api/analyze route)
 create table public.analyses (
   id uuid primary key default gen_random_uuid(),
   user_id uuid references public.profiles(id) on delete cascade not null,
+  project_id uuid references public.projects(id) on delete cascade,
   file_name text not null,
   contract_type text,
   parties text[],
@@ -69,5 +106,4 @@ create policy "Users can delete own analyses"
   on public.analyses for delete
   using (auth.uid() = user_id);
 
--- Index for dashboard queries
 create index analyses_user_id_created_at on public.analyses(user_id, created_at desc);

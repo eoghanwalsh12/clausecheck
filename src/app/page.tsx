@@ -1,3 +1,5 @@
+"use client";
+
 import Link from "next/link";
 import {
   FileText,
@@ -9,8 +11,10 @@ import {
   ArrowRight,
   Upload,
 } from "lucide-react";
+import { useAuth } from "@/lib/auth-context";
 
 export default function HomePage() {
+  const { user } = useAuth();
   return (
     <div className="mx-auto max-w-5xl px-4 py-16">
       {/* Hero */}
@@ -136,10 +140,10 @@ export default function HomePage() {
       {/* CTA */}
       <div className="mt-20 text-center">
         <Link
-          href="/workspace"
+          href={user ? "/dashboard" : "/workspace"}
           className="inline-flex items-center gap-2 text-sm font-medium text-[var(--foreground)] underline underline-offset-4 hover:opacity-80"
         >
-          Get started — it&apos;s free
+          {user ? "Go to your projects" : "Get started — it\u0027s free"}
           <ArrowRight className="h-4 w-4" />
         </Link>
       </div>
