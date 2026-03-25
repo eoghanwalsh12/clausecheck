@@ -16,11 +16,32 @@ export interface ContractAnalysis {
   contractType: string;
   parties: string[];
   effectiveDate: string | null;
-  overallRiskScore: number; // 1-10
+  overallRiskScore: number;
   overallRiskLevel: RiskLevel;
   executiveSummary: string;
   clauses: Clause[];
   keyTerms: string[];
   missingClauses: string[];
   createdAt: string;
+}
+
+// Chat types for the legal assistant
+export interface ChatMessage {
+  id: string;
+  role: "user" | "assistant";
+  content: string;
+  timestamp: string;
+}
+
+export interface DocumentContext {
+  fileName: string;
+  fileType: "pdf" | "docx";
+  text: string;
+  fileUrl: string;
+  htmlContent?: string; // For DOCX rendered as HTML
+}
+
+export interface UserPosition {
+  role: string; // e.g. "Buyer", "Seller", "Tenant", "Employer", "Employee"
+  customDescription?: string; // optional extra context
 }

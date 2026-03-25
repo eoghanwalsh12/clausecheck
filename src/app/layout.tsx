@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import localFont from "next/font/local";
 import Link from "next/link";
-import { FileText, LayoutDashboard, Upload } from "lucide-react";
+import { FileText } from "lucide-react";
 import "./globals.css";
 
 const geistSans = localFont({
@@ -16,9 +16,9 @@ const geistMono = localFont({
 });
 
 export const metadata: Metadata = {
-  title: "ClauseCheck — AI Contract Review",
+  title: "ClauseCheck — AI Legal Assistant",
   description:
-    "Upload any contract. Get instant clause-by-clause risk analysis, plain-English summaries, and suggested edits.",
+    "Open any legal document and chat with your AI legal assistant. Get risk assessments, negotiate better terms, and understand every clause.",
 };
 
 export default function RootLayout({
@@ -31,26 +31,18 @@ export default function RootLayout({
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
-        <nav className="sticky top-0 z-50 border-b border-[var(--border)] bg-[var(--background)]/80 backdrop-blur-sm">
-          <div className="mx-auto flex h-14 max-w-6xl items-center justify-between px-4">
+        <nav className="sticky top-0 z-40 border-b border-[var(--border)] bg-[var(--background)]/80 backdrop-blur-sm">
+          <div className="mx-auto flex h-14 max-w-full items-center justify-between px-4">
             <Link href="/" className="flex items-center gap-2 font-semibold">
               <FileText className="h-5 w-5" />
               ClauseCheck
             </Link>
             <div className="flex items-center gap-4">
               <Link
-                href="/upload"
-                className="flex items-center gap-1.5 text-sm text-[var(--muted-foreground)] transition-colors hover:text-[var(--foreground)]"
+                href="/workspace"
+                className="text-sm text-[var(--muted-foreground)] transition-colors hover:text-[var(--foreground)]"
               >
-                <Upload className="h-4 w-4" />
-                Upload
-              </Link>
-              <Link
-                href="/dashboard"
-                className="flex items-center gap-1.5 text-sm text-[var(--muted-foreground)] transition-colors hover:text-[var(--foreground)]"
-              >
-                <LayoutDashboard className="h-4 w-4" />
-                Dashboard
+                Open Document
               </Link>
             </div>
           </div>

@@ -1,138 +1,148 @@
 import Link from "next/link";
 import {
+  FileText,
+  MessageSquare,
   Shield,
-  FileSearch,
-  AlertTriangle,
+  Target,
   Lightbulb,
+  Scale,
   ArrowRight,
-  CheckCircle,
+  Upload,
 } from "lucide-react";
 
-const features = [
-  {
-    icon: FileSearch,
-    title: "Clause-by-Clause Breakdown",
-    description:
-      "Every clause extracted, categorised, and explained in plain English.",
-  },
-  {
-    icon: AlertTriangle,
-    title: "Risk Flagging",
-    description:
-      "Risky or unusual terms highlighted with severity ratings and explanations.",
-  },
-  {
-    icon: Lightbulb,
-    title: "Suggested Edits",
-    description:
-      "Alternative language for problematic clauses, ready to copy and propose.",
-  },
-  {
-    icon: Shield,
-    title: "Missing Clause Detection",
-    description:
-      "Spots standard protections that are absent from your contract.",
-  },
-];
-
-const steps = [
-  { step: "1", title: "Upload", description: "Drop a PDF or DOCX contract" },
-  {
-    step: "2",
-    title: "Analyse",
-    description: "AI reviews every clause in seconds",
-  },
-  {
-    step: "3",
-    title: "Act",
-    description: "Use the risk report to negotiate better terms",
-  },
-];
-
-export default function Home() {
+export default function HomePage() {
   return (
-    <div className="mx-auto max-w-6xl px-4">
+    <div className="mx-auto max-w-5xl px-4 py-16">
       {/* Hero */}
-      <section className="flex flex-col items-center py-24 text-center">
-        <div className="mb-4 inline-flex items-center gap-2 rounded-full bg-[var(--muted)] px-3 py-1 text-sm text-[var(--muted-foreground)]">
-          <CheckCircle className="h-3.5 w-3.5" />
-          AI-Powered Contract Review
-        </div>
-        <h1 className="max-w-3xl text-5xl font-bold leading-tight tracking-tight">
-          Understand every clause
-          <br />
-          before you sign
+      <div className="text-center">
+        <h1 className="text-4xl font-bold tracking-tight sm:text-5xl">
+          Your AI Legal Assistant
         </h1>
-        <p className="mt-4 max-w-xl text-lg text-[var(--muted-foreground)]">
-          Upload any contract. Get instant risk analysis, plain-English
-          summaries, and suggested edits — in seconds, not days.
+        <p className="mx-auto mt-4 max-w-2xl text-lg text-[var(--muted-foreground)]">
+          Open any legal document and get instant, interactive analysis. Ask
+          questions, identify risks, find opportunities, and negotiate better
+          terms — all from one place.
         </p>
-        <div className="mt-8 flex gap-3">
+        <div className="mt-8 flex items-center justify-center gap-3">
           <Link
-            href="/upload"
-            className="inline-flex items-center gap-2 rounded-lg bg-[var(--primary)] px-5 py-2.5 text-sm font-medium text-[var(--primary-foreground)] transition-opacity hover:opacity-90"
+            href="/workspace"
+            className="inline-flex items-center gap-2 rounded-lg bg-[var(--primary)] px-6 py-3 text-sm font-medium text-[var(--primary-foreground)] transition-colors hover:opacity-90"
           >
-            Review a Contract
-            <ArrowRight className="h-4 w-4" />
-          </Link>
-          <Link
-            href="#how-it-works"
-            className="inline-flex items-center gap-2 rounded-lg border border-[var(--border)] px-5 py-2.5 text-sm font-medium transition-colors hover:bg-[var(--muted)]"
-          >
-            How It Works
+            <Upload className="h-4 w-4" />
+            Open a Document
           </Link>
         </div>
-      </section>
+      </div>
 
-      {/* Features */}
-      <section className="grid gap-6 pb-20 sm:grid-cols-2">
-        {features.map((f) => (
-          <div
-            key={f.title}
-            className="rounded-xl border border-[var(--border)] bg-[var(--card)] p-6"
-          >
-            <f.icon className="mb-3 h-5 w-5 text-[var(--muted-foreground)]" />
-            <h3 className="mb-1 font-semibold">{f.title}</h3>
-            <p className="text-sm text-[var(--muted-foreground)]">
-              {f.description}
+      {/* How it works */}
+      <div className="mt-20">
+        <h2 className="text-center text-2xl font-semibold">How it works</h2>
+        <div className="mt-8 grid grid-cols-1 gap-6 sm:grid-cols-3">
+          <div className="rounded-xl border border-[var(--border)] bg-[var(--card)] p-6 text-center">
+            <div className="mx-auto flex h-10 w-10 items-center justify-center rounded-full bg-[var(--muted)] text-lg font-semibold">
+              1
+            </div>
+            <h3 className="mt-3 font-medium">Upload your document</h3>
+            <p className="mt-1 text-sm text-[var(--muted-foreground)]">
+              Drop any PDF or Word document — contracts, leases, agreements,
+              terms of service, or any legal document.
             </p>
           </div>
-        ))}
-      </section>
+          <div className="rounded-xl border border-[var(--border)] bg-[var(--card)] p-6 text-center">
+            <div className="mx-auto flex h-10 w-10 items-center justify-center rounded-full bg-[var(--muted)] text-lg font-semibold">
+              2
+            </div>
+            <h3 className="mt-3 font-medium">Set your position</h3>
+            <p className="mt-1 text-sm text-[var(--muted-foreground)]">
+              Tell the AI who you are in the document — buyer, seller, tenant,
+              employee — so analysis is tailored to your interests.
+            </p>
+          </div>
+          <div className="rounded-xl border border-[var(--border)] bg-[var(--card)] p-6 text-center">
+            <div className="mx-auto flex h-10 w-10 items-center justify-center rounded-full bg-[var(--muted)] text-lg font-semibold">
+              3
+            </div>
+            <h3 className="mt-3 font-medium">Ask anything</h3>
+            <p className="mt-1 text-sm text-[var(--muted-foreground)]">
+              Chat with your AI legal assistant, run risk assessments, or
+              highlight any passage to get an instant explanation.
+            </p>
+          </div>
+        </div>
+      </div>
 
-      {/* How It Works */}
-      <section id="how-it-works" className="pb-24">
-        <h2 className="mb-10 text-center text-3xl font-bold">How It Works</h2>
-        <div className="grid gap-8 sm:grid-cols-3">
-          {steps.map((s) => (
-            <div key={s.step} className="text-center">
-              <div className="mx-auto mb-4 flex h-10 w-10 items-center justify-center rounded-full bg-[var(--primary)] text-sm font-bold text-[var(--primary-foreground)]">
-                {s.step}
+      {/* Features */}
+      <div className="mt-20">
+        <h2 className="text-center text-2xl font-semibold">
+          Built-in quick actions
+        </h2>
+        <div className="mt-8 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          {[
+            {
+              icon: Shield,
+              title: "Risk Assessment",
+              desc: "Identify every clause that could expose you to risk, ranked by severity",
+              color: "text-red-500",
+            },
+            {
+              icon: Lightbulb,
+              title: "Opportunities",
+              desc: "Find favourable terms and provisions you can leverage",
+              color: "text-amber-500",
+            },
+            {
+              icon: Target,
+              title: "Negotiation Points",
+              desc: "Get specific alternative wording to negotiate better terms",
+              color: "text-blue-500",
+            },
+            {
+              icon: FileText,
+              title: "Plain English",
+              desc: "Break down complex legal language into simple terms",
+              color: "text-emerald-500",
+            },
+            {
+              icon: Scale,
+              title: "Obligations & Deadlines",
+              desc: "See everything you are required to do and by when",
+              color: "text-purple-500",
+            },
+            {
+              icon: MessageSquare,
+              title: "Ask Anything",
+              desc: "Highlight any section and ask your assistant to explain or analyse it",
+              color: "text-cyan-500",
+            },
+          ].map((feature) => (
+            <div
+              key={feature.title}
+              className="flex gap-3 rounded-xl border border-[var(--border)] bg-[var(--card)] p-4"
+            >
+              <feature.icon
+                className={`h-5 w-5 shrink-0 mt-0.5 ${feature.color}`}
+              />
+              <div>
+                <h3 className="text-sm font-medium">{feature.title}</h3>
+                <p className="mt-0.5 text-xs text-[var(--muted-foreground)]">
+                  {feature.desc}
+                </p>
               </div>
-              <h3 className="mb-1 font-semibold">{s.title}</h3>
-              <p className="text-sm text-[var(--muted-foreground)]">
-                {s.description}
-              </p>
             </div>
           ))}
         </div>
-      </section>
+      </div>
 
       {/* CTA */}
-      <section className="mb-20 rounded-2xl bg-[var(--primary)] p-12 text-center text-[var(--primary-foreground)]">
-        <h2 className="text-3xl font-bold">Stop signing blind</h2>
-        <p className="mx-auto mt-3 max-w-md text-sm opacity-80">
-          Whether it&apos;s a freelance agreement, lease, NDA, or employment
-          contract — know exactly what you&apos;re agreeing to.
-        </p>
+      <div className="mt-20 text-center">
         <Link
-          href="/upload"
-          className="mt-6 inline-flex items-center gap-2 rounded-lg bg-[var(--background)] px-5 py-2.5 text-sm font-medium text-[var(--foreground)] transition-opacity hover:opacity-90"
+          href="/workspace"
+          className="inline-flex items-center gap-2 text-sm font-medium text-[var(--foreground)] underline underline-offset-4 hover:opacity-80"
         >
-          Upload Your First Contract
+          Get started — it&apos;s free
           <ArrowRight className="h-4 w-4" />
         </Link>
-      </section>
+      </div>
     </div>
   );
 }

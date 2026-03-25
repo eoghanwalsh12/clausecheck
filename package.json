@@ -18,6 +18,8 @@
     "pdf-parse": "^1.1.1",
     "react": "^18",
     "react-dom": "^18",
+    "react-markdown": "^10.1.0",
+    "react-pdf": "^10.4.1",
     "tailwind-merge": "^3.5.0"
   },
   "devDependencies": {
