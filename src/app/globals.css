@@ -97,6 +97,29 @@ body {
   color: var(--muted-foreground);
   font-size: 0.8rem;
 }
+.chat-prose table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 0.6em 0;
+  font-size: 0.8rem;
+}
+.chat-prose thead {
+  background: var(--muted);
+}
+.chat-prose th {
+  font-weight: 600;
+  text-align: left;
+  padding: 0.4rem 0.6rem;
+  border: 1px solid var(--border);
+}
+.chat-prose td {
+  padding: 0.35rem 0.6rem;
+  border: 1px solid var(--border);
+  vertical-align: top;
+}
+.chat-prose tbody tr:nth-child(even) {
+  background: var(--muted);
+}
 .chat-prose code {
   background: var(--muted);
   padding: 0.15em 0.35em;
