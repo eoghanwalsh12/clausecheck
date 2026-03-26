@@ -65,6 +65,8 @@ export default function DeliveryEditor({
   const [saveStatus, setSaveStatus] = useState<"saved" | "saving" | "unsaved">("saved");
   const [isEditing, setIsEditing] = useState(!!initialContent);
   const [isExporting, setIsExporting] = useState(false);
+  const [showExportMenu, setShowExportMenu] = useState(false);
+  const exportMenuRef = useRef<HTMLDivElement>(null);
   const saveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const abortRef = useRef<AbortController | null>(null);
   // Tracks accumulated content during generation so we can recover on error
@@ -93,6 +95,10 @@ export default function DeliveryEditor({
       }
     },
   });
+
+  // Ref to always access the current editor instance (avoids stale closures in effects)
+  const editorRef = useRef(editor);
+  editorRef.current = editor;
 
   // Auto-save debounce
   const debouncedSave = useCallback(
@@ -152,18 +158,20 @@ export default function DeliveryEditor({
   );
 
   // Helper: finish generation and load content into the editor
+  // Uses editorRef to avoid stale closure over editor (which is null initially)
   const finishGeneration = useCallback(
     (content: string) => {
+      const ed = editorRef.current;
       // Load content into Tiptap BEFORE switching views
-      if (editor && content) {
-        editor.commands.setContent(content);
-        editor.setEditable(true);
+      if (ed && content) {
+        ed.commands.setContent(content);
+        ed.setEditable(true);
       }
       setIsEditing(true);
       setIsGenerating(false);
       setGeneratingContent("");
     },
-    [editor]
+    []
   );
 
   // Generate document via streaming API
@@ -347,6 +355,18 @@ export default function DeliveryEditor({
     printWindow.onload = () => printWindow.print();
   }, [editor, title]);
 
+  // Close export menu on outside click
+  useEffect(() => {
+    if (!showExportMenu) return;
+    const handleClick = (e: MouseEvent) => {
+      if (exportMenuRef.current && !exportMenuRef.current.contains(e.target as Node)) {
+        setShowExportMenu(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClick);
+    return () => document.removeEventListener("mousedown", handleClick);
+  }, [showExportMenu]);
+
   // Toolbar button helper
   const ToolbarButton = ({
     onClick,
@@ -406,8 +426,9 @@ export default function DeliveryEditor({
           </span>
 
           {/* Export dropdown */}
-          <div className="relative group">
+          <div className="relative" ref={exportMenuRef}>
             <button
+              onClick={() => setShowExportMenu((v) => !v)}
               disabled={isGenerating || isExporting}
               className="flex items-center gap-1 rounded-md border border-[var(--border)] px-2.5 py-1 text-xs font-medium transition-colors hover:bg-[var(--accent)] disabled:opacity-40"
             >
@@ -418,20 +439,22 @@ export default function DeliveryEditor({
               )}
               Export
             </button>
-            <div className="absolute right-0 top-full mt-1 hidden group-hover:block bg-[var(--card)] border border-[var(--border)] rounded-lg shadow-lg py-1 min-w-[140px] z-10">
-              <button
-                onClick={handleExportPdf}
-                className="w-full px-3 py-1.5 text-xs text-left hover:bg-[var(--accent)] transition-colors"
-              >
-                Export as PDF
-              </button>
-              <button
-                onClick={handleExportDocx}
-                className="w-full px-3 py-1.5 text-xs text-left hover:bg-[var(--accent)] transition-colors"
-              >
-                Export as DOCX
-              </button>
-            </div>
+            {showExportMenu && (
+              <div className="absolute right-0 top-full mt-1 bg-[var(--card)] border border-[var(--border)] rounded-lg shadow-lg py-1 min-w-[140px] z-10">
+                <button
+                  onClick={() => { handleExportPdf(); setShowExportMenu(false); }}
+                  className="w-full px-3 py-1.5 text-xs text-left hover:bg-[var(--accent)] transition-colors"
+                >
+                  Export as PDF
+                </button>
+                <button
+                  onClick={() => { handleExportDocx(); setShowExportMenu(false); }}
+                  className="w-full px-3 py-1.5 text-xs text-left hover:bg-[var(--accent)] transition-colors"
+                >
+                  Export as DOCX
+                </button>
+              </div>
+            )}
           </div>
         </div>
       </div>
