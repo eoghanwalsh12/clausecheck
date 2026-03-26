@@ -67,6 +67,8 @@ export default function DeliveryEditor({
   const [isExporting, setIsExporting] = useState(false);
   const saveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const abortRef = useRef<AbortController | null>(null);
+  // Tracks accumulated content during generation so we can recover on error
+  const generatedContentRef = useRef("");
 
   const editor = useEditor({
     extensions: [
@@ -149,12 +151,28 @@ export default function DeliveryEditor({
     [deliverableId, title, editor, projectId, audience, format, onSaved]
   );
 
+  // Helper: finish generation and load content into the editor
+  const finishGeneration = useCallback(
+    (content: string) => {
+      // Load content into Tiptap BEFORE switching views
+      if (editor && content) {
+        editor.commands.setContent(content);
+        editor.setEditable(true);
+      }
+      setIsEditing(true);
+      setIsGenerating(false);
+      setGeneratingContent("");
+    },
+    [editor]
+  );
+
   // Generate document via streaming API
   useEffect(() => {
     if (initialContent || !isGenerating) return;
 
     const abortController = new AbortController();
     abortRef.current = abortController;
+    generatedContentRef.current = "";
 
     const generate = async () => {
       try {
@@ -178,7 +196,6 @@ export default function DeliveryEditor({
         if (!reader) throw new Error("No response stream");
 
         const decoder = new TextDecoder();
-        let fullContent = "";
 
         while (true) {
           const { done, value } = await reader.read();
@@ -193,8 +210,8 @@ export default function DeliveryEditor({
               if (data === "[DONE]") break;
               try {
                 const parsed = JSON.parse(data);
-                fullContent += parsed.text;
-                setGeneratingContent(fullContent);
+                generatedContentRef.current += parsed.text;
+                setGeneratingContent(generatedContentRef.current);
               } catch {
                 // skip malformed chunks
               }
@@ -202,46 +219,53 @@ export default function DeliveryEditor({
           }
         }
 
-        // Generation complete — load into editor
-        setIsGenerating(false);
-        setGeneratingContent("");
-        if (editor) {
-          editor.commands.setContent(fullContent);
-          editor.setEditable(true);
-        }
-        setIsEditing(true);
+        const fullContent = generatedContentRef.current;
+
+        // Load into editor and switch to edit mode
+        finishGeneration(fullContent);
 
         // Auto-save the generated content
-        setSaveStatus("saving");
-        const session2 = (await supabase.auth.getSession()).data.session;
-        const res = await fetch("/api/deliverables", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${session2?.access_token}`,
-          },
-          body: JSON.stringify({
-            projectId,
-            audience,
-            format,
-            title,
-            content: fullContent,
-            aiGeneratedContent: fullContent,
-          }),
-        });
-        if (res.ok) {
-          const { id } = await res.json();
-          setDeliverableId(id);
-          onSaved?.(id);
+        if (fullContent) {
+          setSaveStatus("saving");
+          try {
+            const session2 = (await supabase.auth.getSession()).data.session;
+            const res = await fetch("/api/deliverables", {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+                Authorization: `Bearer ${session2?.access_token}`,
+              },
+              body: JSON.stringify({
+                projectId,
+                audience,
+                format,
+                title,
+                content: fullContent,
+                aiGeneratedContent: fullContent,
+              }),
+            });
+            if (res.ok) {
+              const { id } = await res.json();
+              setDeliverableId(id);
+              onSaved?.(id);
+            }
+            setSaveStatus("saved");
+          } catch {
+            setSaveStatus("unsaved");
+          }
         }
-        setSaveStatus("saved");
       } catch (error) {
         if ((error as Error).name !== "AbortError") {
           console.error("Generation error:", error);
-          setIsGenerating(false);
-          setGeneratingContent(
-            `<p>Failed to generate document: ${(error as Error).message}. Please try again.</p>`
-          );
+          // Recover: load whatever was generated so far into the editor
+          const partialContent = generatedContentRef.current;
+          if (partialContent) {
+            finishGeneration(partialContent);
+          } else {
+            setIsGenerating(false);
+            setIsEditing(true);
+            setGeneratingContent("");
+          }
         }
       }
     };
