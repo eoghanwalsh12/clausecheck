@@ -19,6 +19,8 @@ import { useAuth } from "@/lib/auth-context";
 import { supabase } from "@/lib/supabase";
 import ChatSidebar from "@/components/chat-sidebar";
 import PositionSelector from "@/components/position-selector";
+import DeliveryButton from "@/components/delivery-button";
+import DeliveryScreen from "@/components/delivery-screen";
 
 const DocumentViewer = dynamic(() => import("@/components/document-viewer"), {
   ssr: false,
@@ -59,6 +61,7 @@ function WorkspaceContent() {
   const [selectedText, setSelectedText] = useState<string | null>(null);
   const [highlightText, setHighlightText] = useState<string | null>(null);
   const [activeRefs, setActiveRefs] = useState<string[]>([]);
+  const [showDelivery, setShowDelivery] = useState(false);
 
   // Project persistence state
   const [currentProjectId, setCurrentProjectId] = useState<string | null>(
@@ -385,6 +388,10 @@ function WorkspaceContent() {
                 <UserCheck className="h-3.5 w-3.5" />
                 {position ? position.role : "Set role"}
               </button>
+              <DeliveryButton
+                onClick={() => setShowDelivery(true)}
+                disabled={!currentProjectId || !user}
+              />
               {sidebarOpen && sidebarExpanded && (
                 <button
                   onClick={() => setSidebarExpanded(false)}
@@ -458,6 +465,13 @@ function WorkspaceContent() {
           </div>
         )}
       </div>
+
+      {showDelivery && currentProjectId && (
+        <DeliveryScreen
+          projectId={currentProjectId}
+          onClose={() => setShowDelivery(false)}
+        />
+      )}
     </>
   );
 }

@@ -45,3 +45,28 @@ export interface UserPosition {
   role: string; // e.g. "Buyer", "Seller", "Tenant", "Employer", "Employee"
   customDescription?: string; // optional extra context
 }
+
+// Delivery feature types
+export type DeliverableAudience = 'client' | 'partner';
+
+export type DeliverableFormat =
+  | 'client_email'
+  | 'written_report'
+  | 'annotated_document'
+  | 'presentation_outline'
+  | 'letter_of_advice'
+  | 'negotiation_playbook'
+  | 'risk_register';
+
+export interface Deliverable {
+  id: string;
+  project_id: string;
+  user_id: string;
+  audience: DeliverableAudience;
+  format: DeliverableFormat;
+  title: string;
+  content: string;
+  ai_generated_content?: string;
+  created_at: string;
+  updated_at: string;
+}

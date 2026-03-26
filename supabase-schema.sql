@@ -124,3 +124,35 @@ create policy "Users can read own documents"
 create policy "Users can delete own documents"
   on storage.objects for delete
   using (bucket_id = 'documents' and auth.uid()::text = (storage.foldername(name))[1]);
+
+-- Deliverables (generated documents from the delivery feature)
+create table public.deliverables (
+  id uuid primary key default gen_random_uuid(),
+  project_id uuid references public.projects(id) on delete cascade not null,
+  user_id uuid references auth.users(id) on delete cascade not null,
+  audience text not null check (audience in ('client', 'partner')),
+  format text not null check (format in (
+    'client_email', 'written_report', 'annotated_document',
+    'presentation_outline', 'letter_of_advice', 'negotiation_playbook',
+    'risk_register'
+  )),
+  title text not null,
+  content text not null default '',
+  ai_generated_content text,
+  created_at timestamptz default now(),
+  updated_at timestamptz default now()
+);
+
+alter table public.deliverables enable row level security;
+
+create policy "Users can view own deliverables"
+  on public.deliverables for select using (auth.uid() = user_id);
+create policy "Users can insert own deliverables"
+  on public.deliverables for insert with check (auth.uid() = user_id);
+create policy "Users can update own deliverables"
+  on public.deliverables for update using (auth.uid() = user_id);
+create policy "Users can delete own deliverables"
+  on public.deliverables for delete using (auth.uid() = user_id);
+
+create index deliverables_project_id on public.deliverables(project_id, created_at desc);
+create index deliverables_user_id on public.deliverables(user_id, updated_at desc);
