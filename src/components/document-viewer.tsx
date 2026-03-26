@@ -303,6 +303,40 @@ export default function DocumentViewer({
     );
   }
 
+  // ─── Text-only fallback (loaded from DB without original file) ─────────────
+  if (!fileUrl && documentText) {
+    return (
+      <div className="flex h-full flex-col">
+        {activeRefs.length > 0 && (
+          <div className="flex items-center gap-2 border-b border-[var(--border)] bg-indigo-50 dark:bg-indigo-950/30 px-3 py-1.5 overflow-x-auto">
+            <BookOpen className="h-3.5 w-3.5 shrink-0 text-indigo-500" />
+            <span className="shrink-0 text-[10px] font-medium text-indigo-600 dark:text-indigo-400">
+              Referenced:
+            </span>
+            <div className="flex gap-1.5 flex-wrap">
+              {activeRefs.map((ref) => (
+                <span
+                  key={ref}
+                  className="rounded-full bg-indigo-100 dark:bg-indigo-900/50 px-2 py-0.5 text-[10px] font-medium text-indigo-700 dark:text-indigo-300"
+                >
+                  {ref}
+                </span>
+              ))}
+            </div>
+          </div>
+        )}
+        <div
+          className="flex-1 overflow-auto bg-white"
+          onMouseUp={handleTextSelection}
+        >
+          <div className="prose prose-sm max-w-none p-8 text-gray-900 whitespace-pre-wrap">
+            {documentText}
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   // ─── PDF render ────────────────────────────────────────────────────────────
   return (
     <div className="flex h-full flex-col">

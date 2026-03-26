@@ -41,7 +41,7 @@ create trigger on_auth_user_created
 -- Projects (documents with their analysis and chat history)
 create table public.projects (
   id uuid primary key default gen_random_uuid(),
-  user_id uuid references public.profiles(id) on delete cascade not null,
+  user_id uuid references auth.users(id) on delete cascade not null,
   file_name text not null,
   document_text text not null,
   html_content text,
@@ -77,7 +77,7 @@ create index projects_user_id_updated_at on public.projects(user_id, updated_at 
 -- Contract analyses (optional structured analysis from the /api/analyze route)
 create table public.analyses (
   id uuid primary key default gen_random_uuid(),
-  user_id uuid references public.profiles(id) on delete cascade not null,
+  user_id uuid references auth.users(id) on delete cascade not null,
   project_id uuid references public.projects(id) on delete cascade,
   file_name text not null,
   contract_type text,
