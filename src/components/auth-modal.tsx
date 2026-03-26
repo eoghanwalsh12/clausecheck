@@ -14,6 +14,8 @@ export default function AuthModal({ onClose }: AuthModalProps) {
   const [mode, setMode] = useState<"signin" | "signup">("signin");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [organisation, setOrganisation] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const [signUpSuccess, setSignUpSuccess] = useState(false);
@@ -28,10 +30,18 @@ export default function AuthModal({ onClose }: AuthModalProps) {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError("");
+
+    if (mode === "signup" && password !== confirmPassword) {
+      setError("Passwords don't match.");
+      return;
+    }
+
     setLoading(true);
 
     const result =
-      mode === "signin" ? await signIn(email, password) : await signUp(email, password);
+      mode === "signin"
+        ? await signIn(email, password)
+        : await signUp(email, password, organisation);
 
     if (result.error) {
       setError(result.error);
@@ -140,6 +150,47 @@ export default function AuthModal({ onClose }: AuthModalProps) {
                   placeholder="At least 6 characters"
                 />
               </div>
+
+              {mode === "signup" && (
+                <>
+                  <div>
+                    <label className="text-xs font-medium text-[var(--muted-foreground)]">
+                      Confirm Password
+                    </label>
+                    <input
+                      type="password"
+                      value={confirmPassword}
+                      onChange={(e) => setConfirmPassword(e.target.value)}
+                      required
+                      minLength={6}
+                      className={cn(
+                        "mt-1 w-full rounded-lg border bg-[var(--background)] px-3 py-2 text-sm outline-none focus:ring-1 focus:ring-[var(--ring)]",
+                        confirmPassword && password !== confirmPassword
+                          ? "border-[var(--destructive)]"
+                          : "border-[var(--border)]"
+                      )}
+                      placeholder="Re-enter your password"
+                    />
+                    {confirmPassword && password !== confirmPassword && (
+                      <p className="mt-1 text-xs text-[var(--destructive)]">
+                        Passwords don&apos;t match.
+                      </p>
+                    )}
+                  </div>
+                  <div>
+                    <label className="text-xs font-medium text-[var(--muted-foreground)]">
+                      Organisation
+                    </label>
+                    <input
+                      type="text"
+                      value={organisation}
+                      onChange={(e) => setOrganisation(e.target.value)}
+                      className="mt-1 w-full rounded-lg border border-[var(--border)] bg-[var(--background)] px-3 py-2 text-sm outline-none focus:ring-1 focus:ring-[var(--ring)]"
+                      placeholder="Where do you work?"
+                    />
+                  </div>
+                </>
+              )}
 
               {error && (
                 <p className="text-sm text-[var(--destructive)]">{error}</p>
