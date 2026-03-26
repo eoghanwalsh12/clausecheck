@@ -71,11 +71,20 @@ function WorkspaceContent() {
     []
   );
   const saveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  // Track whether a fresh upload already set the document — prevents the
+  // load-project effect from overwriting the local blob URL / htmlContent
+  // when replaceState adds ?project=xxx to the URL after upload.
+  const freshUploadRef = useRef(false);
 
   // Load existing project
   useEffect(() => {
     if (!projectId || !user) {
       setIsLoadingProject(false);
+      return;
+    }
+
+    // Skip if we just uploaded — the document is already set from the local file
+    if (freshUploadRef.current) {
       return;
     }
 
@@ -249,6 +258,7 @@ function WorkspaceContent() {
           }
         }
 
+        freshUploadRef.current = true;
         setShowPositionSelector(true);
       } catch (err) {
         setError(
