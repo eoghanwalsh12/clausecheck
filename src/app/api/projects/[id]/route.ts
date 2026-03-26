@@ -108,6 +108,14 @@ export async function DELETE(
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
+    // Get project details for storage cleanup
+    const { data: project } = await supabase
+      .from("projects")
+      .select("file_name")
+      .eq("id", id)
+      .eq("user_id", user.id)
+      .single();
+
     const { error } = await supabase
       .from("projects")
       .delete()
@@ -115,6 +123,13 @@ export async function DELETE(
       .eq("user_id", user.id);
 
     if (error) throw error;
+
+    // Clean up stored file
+    if (project?.file_name) {
+      await supabase.storage
+        .from("documents")
+        .remove([`${user.id}/${id}/${project.file_name}`]);
+    }
 
     return NextResponse.json({ success: true });
   } catch (error) {

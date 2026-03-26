@@ -91,11 +91,21 @@ function WorkspaceContent() {
 
         const project = await res.json();
 
+        // Try to get the original file from Supabase Storage
+        let fileUrl = "";
+        const storagePath = `${user.id}/${project.id}/${project.file_name}`;
+        const { data: signedUrlData } = await supabase.storage
+          .from("documents")
+          .createSignedUrl(storagePath, 3600); // 1 hour expiry
+        if (signedUrlData?.signedUrl) {
+          fileUrl = signedUrlData.signedUrl;
+        }
+
         setDocument({
           fileName: project.file_name,
           fileType: project.file_type,
           text: project.document_text,
-          fileUrl: "", // No blob URL for loaded projects
+          fileUrl,
           htmlContent: project.html_content || undefined,
         });
 
@@ -223,6 +233,12 @@ function WorkspaceContent() {
               setCurrentProjectId(id);
               // Update URL without navigation
               window.history.replaceState(null, "", `/workspace?project=${id}`);
+
+              // Upload original file to Supabase Storage
+              const storagePath = `${user.id}/${id}/${file.name}`;
+              await supabase.storage
+                .from("documents")
+                .upload(storagePath, file, { upsert: true });
             }
           } catch {
             // Non-critical — project still works locally

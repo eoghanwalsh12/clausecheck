@@ -107,3 +107,20 @@ create policy "Users can delete own analyses"
   using (auth.uid() = user_id);
 
 create index analyses_user_id_created_at on public.analyses(user_id, created_at desc);
+
+-- Document file storage bucket
+insert into storage.buckets (id, name, public)
+values ('documents', 'documents', false)
+on conflict (id) do nothing;
+
+create policy "Users can upload own documents"
+  on storage.objects for insert
+  with check (bucket_id = 'documents' and auth.uid()::text = (storage.foldername(name))[1]);
+
+create policy "Users can read own documents"
+  on storage.objects for select
+  using (bucket_id = 'documents' and auth.uid()::text = (storage.foldername(name))[1]);
+
+create policy "Users can delete own documents"
+  on storage.objects for delete
+  using (bucket_id = 'documents' and auth.uid()::text = (storage.foldername(name))[1]);
