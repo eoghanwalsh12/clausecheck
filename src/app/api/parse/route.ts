@@ -1,15 +1,29 @@
 import { NextRequest, NextResponse } from "next/server";
+import { getAuthenticatedUser, unauthorizedResponse } from "@/lib/supabase-server";
+import { checkRateLimit, rateLimitResponse } from "@/lib/rate-limit";
+import { isFileTooLarge } from "@/lib/validation";
 // eslint-disable-next-line @typescript-eslint/no-require-imports
 const pdf = require("pdf-parse/lib/pdf-parse");
 import mammoth from "mammoth";
 
 export async function POST(request: NextRequest) {
   try {
+    const auth = await getAuthenticatedUser(request);
+    if (!auth) return unauthorizedResponse();
+
+    if (!checkRateLimit(`parse:${auth.user.id}`, 20)) {
+      return rateLimitResponse();
+    }
+
     const formData = await request.formData();
     const file = formData.get("file") as File | null;
 
     if (!file) {
       return NextResponse.json({ error: "No file provided" }, { status: 400 });
+    }
+
+    if (isFileTooLarge(file)) {
+      return NextResponse.json({ error: "File exceeds the 10 MB limit." }, { status: 400 });
     }
 
     const buffer = Buffer.from(await file.arrayBuffer());
@@ -50,12 +64,7 @@ export async function POST(request: NextRequest) {
   } catch (error) {
     console.error("Parse error:", error);
     return NextResponse.json(
-      {
-        error:
-          error instanceof Error
-            ? error.message
-            : "Failed to parse document",
-      },
+      { error: "Failed to parse document" },
       { status: 500 }
     );
   }

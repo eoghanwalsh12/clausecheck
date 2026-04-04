@@ -1,17 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
-import { createClient } from "@supabase/supabase-js";
-
-function getSupabaseClient(authHeader: string | null) {
-  return createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-    {
-      global: {
-        headers: authHeader ? { Authorization: authHeader } : {},
-      },
-    }
-  );
-}
+import { getAuthenticatedUser, unauthorizedResponse } from "@/lib/supabase-server";
+import { checkRateLimit, rateLimitResponse } from "@/lib/rate-limit";
+import { isValidUUID, safeErrorMessage } from "@/lib/validation";
 
 // GET /api/deliverables/[id] — fetch a single deliverable with full content
 export async function GET(
@@ -20,17 +10,22 @@ export async function GET(
 ) {
   try {
     const { id } = await params;
-    const supabase = getSupabaseClient(request.headers.get("authorization"));
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    if (!isValidUUID(id)) {
+      return NextResponse.json({ error: "Invalid deliverable ID" }, { status: 400 });
     }
 
-    const { data, error } = await supabase
+    const auth = await getAuthenticatedUser(request);
+    if (!auth) return unauthorizedResponse();
+
+    if (!checkRateLimit(`deliverables:${auth.user.id}`, 60)) {
+      return rateLimitResponse();
+    }
+
+    const { data, error } = await auth.supabase
       .from("deliverables")
       .select("*")
       .eq("id", id)
-      .eq("user_id", user.id)
+      .eq("user_id", auth.user.id)
       .single();
 
     if (error) throw error;
@@ -42,7 +37,7 @@ export async function GET(
   } catch (error) {
     console.error("Get deliverable error:", error);
     return NextResponse.json(
-      { error: error instanceof Error ? error.message : "Failed to load deliverable" },
+      { error: safeErrorMessage(error, "Failed to load deliverable") },
       { status: 500 }
     );
   }
@@ -55,10 +50,15 @@ export async function PATCH(
 ) {
   try {
     const { id } = await params;
-    const supabase = getSupabaseClient(request.headers.get("authorization"));
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    if (!isValidUUID(id)) {
+      return NextResponse.json({ error: "Invalid deliverable ID" }, { status: 400 });
+    }
+
+    const auth = await getAuthenticatedUser(request);
+    if (!auth) return unauthorizedResponse();
+
+    if (!checkRateLimit(`deliverables:${auth.user.id}`, 60)) {
+      return rateLimitResponse();
     }
 
     const body = await request.json();
@@ -67,11 +67,11 @@ export async function PATCH(
     if (body.title !== undefined) updates.title = body.title;
     if (body.content !== undefined) updates.content = body.content;
 
-    const { error } = await supabase
+    const { error } = await auth.supabase
       .from("deliverables")
       .update(updates)
       .eq("id", id)
-      .eq("user_id", user.id);
+      .eq("user_id", auth.user.id);
 
     if (error) throw error;
 
@@ -79,7 +79,7 @@ export async function PATCH(
   } catch (error) {
     console.error("Update deliverable error:", error);
     return NextResponse.json(
-      { error: error instanceof Error ? error.message : "Failed to update deliverable" },
+      { error: safeErrorMessage(error, "Failed to update deliverable") },
       { status: 500 }
     );
   }
@@ -92,17 +92,22 @@ export async function DELETE(
 ) {
   try {
     const { id } = await params;
-    const supabase = getSupabaseClient(request.headers.get("authorization"));
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    if (!isValidUUID(id)) {
+      return NextResponse.json({ error: "Invalid deliverable ID" }, { status: 400 });
     }
 
-    const { error } = await supabase
+    const auth = await getAuthenticatedUser(request);
+    if (!auth) return unauthorizedResponse();
+
+    if (!checkRateLimit(`deliverables:${auth.user.id}`, 60)) {
+      return rateLimitResponse();
+    }
+
+    const { error } = await auth.supabase
       .from("deliverables")
       .delete()
       .eq("id", id)
-      .eq("user_id", user.id);
+      .eq("user_id", auth.user.id);
 
     if (error) throw error;
 
@@ -110,7 +115,7 @@ export async function DELETE(
   } catch (error) {
     console.error("Delete deliverable error:", error);
     return NextResponse.json(
-      { error: error instanceof Error ? error.message : "Failed to delete deliverable" },
+      { error: safeErrorMessage(error, "Failed to delete deliverable") },
       { status: 500 }
     );
   }

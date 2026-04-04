@@ -1,23 +1,13 @@
 import { NextRequest } from "next/server";
 import Anthropic from "@anthropic-ai/sdk";
-import { createClient } from "@supabase/supabase-js";
+import { getAuthenticatedUser, unauthorizedResponse } from "@/lib/supabase-server";
+import { checkRateLimit, rateLimitResponse } from "@/lib/rate-limit";
+import { isValidUUID } from "@/lib/validation";
 import type { DeliverableAudience, DeliverableFormat } from "@/lib/types";
 
 const anthropic = new Anthropic({
   apiKey: process.env.ANTHROPIC_API_KEY!,
 });
-
-function getSupabaseClient(authHeader: string | null) {
-  return createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-    {
-      global: {
-        headers: authHeader ? { Authorization: authHeader } : {},
-      },
-    }
-  );
-}
 
 const AUDIENCE_INSTRUCTIONS: Record<DeliverableAudience, string> = {
   client:
@@ -144,13 +134,13 @@ Organise by priority. Be direct and strategic. This is a working document for th
    - Risk Description (clear, specific)
    - Likelihood (1-5 scale with descriptor)
    - Impact (1-5 scale with descriptor)
-   - Risk Score (Likelihood × Impact)
+   - Risk Score (Likelihood x Impact)
    - Risk Owner (suggested role/party)
    - Mitigation Strategy (specific, actionable)
    - Recommended Action
    - Priority (Immediate / Short-term / Monitor)
 
-3. Risk Heat Map description (5×5 matrix showing risk distribution)
+3. Risk Heat Map description (5x5 matrix showing risk distribution)
 4. Key Recommendations (top 5 actions to reduce overall risk exposure)
 
 Be thorough — identify all material risks from the document.`,
@@ -215,15 +205,11 @@ Do NOT use markdown. Output only valid HTML content (no <html>, <head>, or <body
 
 export async function POST(request: NextRequest) {
   try {
-    const authHeader = request.headers.get("authorization");
-    const supabase = getSupabaseClient(authHeader);
+    const auth = await getAuthenticatedUser(request);
+    if (!auth) return unauthorizedResponse();
 
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) {
-      return new Response(JSON.stringify({ error: "Unauthorized" }), {
-        status: 401,
-        headers: { "Content-Type": "application/json" },
-      });
+    if (!checkRateLimit(`deliverables-gen:${auth.user.id}`, 10)) {
+      return rateLimitResponse();
     }
 
     const body = await request.json();
@@ -233,19 +219,19 @@ export async function POST(request: NextRequest) {
       format: DeliverableFormat;
     };
 
-    if (!projectId || !audience || !format) {
-      return new Response(JSON.stringify({ error: "Missing required fields" }), {
+    if (!projectId || !isValidUUID(projectId) || !audience || !format) {
+      return new Response(JSON.stringify({ error: "Missing or invalid required fields" }), {
         status: 400,
         headers: { "Content-Type": "application/json" },
       });
     }
 
     // Load project data
-    const { data: project, error: projectError } = await supabase
+    const { data: project, error: projectError } = await auth.supabase
       .from("projects")
       .select("document_text, chat_history, position_role, position_description")
       .eq("id", projectId)
-      .eq("user_id", user.id)
+      .eq("user_id", auth.user.id)
       .single();
 
     if (projectError || !project) {
@@ -305,9 +291,7 @@ export async function POST(request: NextRequest) {
   } catch (error) {
     console.error("Generate deliverable error:", error);
     return new Response(
-      JSON.stringify({
-        error: error instanceof Error ? error.message : "Failed to generate deliverable",
-      }),
+      JSON.stringify({ error: "Failed to generate deliverable" }),
       { status: 500, headers: { "Content-Type": "application/json" } }
     );
   }

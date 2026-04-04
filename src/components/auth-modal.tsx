@@ -16,6 +16,7 @@ export default function AuthModal({ onClose }: AuthModalProps) {
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [organisation, setOrganisation] = useState("");
+  const [consentGiven, setConsentGiven] = useState(false);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const [signUpSuccess, setSignUpSuccess] = useState(false);
@@ -33,6 +34,11 @@ export default function AuthModal({ onClose }: AuthModalProps) {
 
     if (mode === "signup" && password !== confirmPassword) {
       setError("Passwords don't match.");
+      return;
+    }
+
+    if (mode === "signup" && !consentGiven) {
+      setError("Please accept the Terms of Service and Privacy Policy to continue.");
       return;
     }
 
@@ -189,6 +195,36 @@ export default function AuthModal({ onClose }: AuthModalProps) {
                       placeholder="Where do you work?"
                     />
                   </div>
+                  <label className="flex items-start gap-2.5 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={consentGiven}
+                      onChange={(e) => setConsentGiven(e.target.checked)}
+                      className="mt-0.5 h-3.5 w-3.5 shrink-0 accent-[var(--primary)]"
+                    />
+                    <span className="text-xs text-[var(--muted-foreground)] leading-relaxed">
+                      I agree to the{" "}
+                      <a
+                        href="/terms"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="font-medium text-[var(--foreground)] underline underline-offset-2"
+                      >
+                        Terms of Service
+                      </a>{" "}
+                      and{" "}
+                      <a
+                        href="/privacy"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="font-medium text-[var(--foreground)] underline underline-offset-2"
+                      >
+                        Privacy Policy
+                      </a>
+                      , including the use of sub-processors (Anthropic, Supabase) to
+                      deliver the service.
+                    </span>
+                  </label>
                 </>
               )}
 

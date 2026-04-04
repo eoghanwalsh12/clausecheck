@@ -1,34 +1,22 @@
 import { NextRequest, NextResponse } from "next/server";
-import { createClient } from "@supabase/supabase-js";
-
-function getSupabaseClient(authHeader: string | null) {
-  return createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-    {
-      global: {
-        headers: authHeader ? { Authorization: authHeader } : {},
-      },
-    }
-  );
-}
+import { getAuthenticatedUser, unauthorizedResponse } from "@/lib/supabase-server";
+import { checkRateLimit, rateLimitResponse } from "@/lib/rate-limit";
+import { safeErrorMessage } from "@/lib/validation";
 
 // GET /api/projects — list user's projects
 export async function GET(request: NextRequest) {
   try {
-    const supabase = getSupabaseClient(request.headers.get("authorization"));
+    const auth = await getAuthenticatedUser(request);
+    if (!auth) return unauthorizedResponse();
 
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
-    if (!user) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    if (!checkRateLimit(`projects:${auth.user.id}`, 60)) {
+      return rateLimitResponse();
     }
 
-    const { data, error } = await supabase
+    const { data, error } = await auth.supabase
       .from("projects")
       .select("id, file_name, file_type, position_role, updated_at, created_at")
-      .eq("user_id", user.id)
+      .eq("user_id", auth.user.id)
       .order("updated_at", { ascending: false });
 
     if (error) throw error;
@@ -37,7 +25,7 @@ export async function GET(request: NextRequest) {
   } catch (error) {
     console.error("List projects error:", error);
     return NextResponse.json(
-      { error: error instanceof Error ? error.message : "Failed to list projects" },
+      { error: safeErrorMessage(error, "Failed to list projects") },
       { status: 500 }
     );
   }
@@ -46,13 +34,11 @@ export async function GET(request: NextRequest) {
 // POST /api/projects — create a new project
 export async function POST(request: NextRequest) {
   try {
-    const supabase = getSupabaseClient(request.headers.get("authorization"));
+    const auth = await getAuthenticatedUser(request);
+    if (!auth) return unauthorizedResponse();
 
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
-    if (!user) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    if (!checkRateLimit(`projects:${auth.user.id}`, 60)) {
+      return rateLimitResponse();
     }
 
     const body = await request.json();
@@ -63,10 +49,10 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Missing required fields" }, { status: 400 });
     }
 
-    const { data, error } = await supabase
+    const { data, error } = await auth.supabase
       .from("projects")
       .insert({
-        user_id: user.id,
+        user_id: auth.user.id,
         file_name: fileName,
         document_text: documentText,
         html_content: htmlContent || null,
@@ -84,7 +70,7 @@ export async function POST(request: NextRequest) {
   } catch (error) {
     console.error("Create project error:", error);
     return NextResponse.json(
-      { error: error instanceof Error ? error.message : "Failed to create project" },
+      { error: safeErrorMessage(error, "Failed to create project") },
       { status: 500 }
     );
   }

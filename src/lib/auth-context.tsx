@@ -1,8 +1,11 @@
 "use client";
 
-import { createContext, useContext, useEffect, useState } from "react";
+import { createContext, useContext, useEffect, useState, useRef, useCallback } from "react";
 import type { User, Session } from "@supabase/supabase-js";
 import { supabase } from "./supabase";
+
+/** Auto-logout after 30 minutes of inactivity */
+const INACTIVITY_TIMEOUT_MS = 30 * 60 * 1000;
 
 interface AuthContextType {
   user: User | null;
@@ -19,6 +22,30 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
+  const inactivityTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const resetInactivityTimer = useCallback(() => {
+    if (inactivityTimer.current) clearTimeout(inactivityTimer.current);
+    inactivityTimer.current = setTimeout(() => {
+      supabase.auth.signOut();
+    }, INACTIVITY_TIMEOUT_MS);
+  }, []);
+
+  // Inactivity timeout — reset on user interaction
+  useEffect(() => {
+    if (!user) return;
+
+    const events = ["mousedown", "keydown", "scroll", "touchstart"] as const;
+    const handler = () => resetInactivityTimer();
+
+    events.forEach((e) => window.addEventListener(e, handler, { passive: true }));
+    resetInactivityTimer();
+
+    return () => {
+      events.forEach((e) => window.removeEventListener(e, handler));
+      if (inactivityTimer.current) clearTimeout(inactivityTimer.current);
+    };
+  }, [user, resetInactivityTimer]);
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {

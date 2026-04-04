@@ -1,5 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import Anthropic from "@anthropic-ai/sdk";
+import { getAuthenticatedUser, unauthorizedResponse } from "@/lib/supabase-server";
+import { checkRateLimit, rateLimitResponse } from "@/lib/rate-limit";
+import { isFileTooLarge } from "@/lib/validation";
 // eslint-disable-next-line @typescript-eslint/no-require-imports
 const pdf = require("pdf-parse/lib/pdf-parse");
 import mammoth from "mammoth";
@@ -62,11 +65,22 @@ Guidelines:
 
 export async function POST(request: NextRequest) {
   try {
+    const auth = await getAuthenticatedUser(request);
+    if (!auth) return unauthorizedResponse();
+
+    if (!checkRateLimit(`analyze:${auth.user.id}`, 10)) {
+      return rateLimitResponse();
+    }
+
     const formData = await request.formData();
     const file = formData.get("file") as File | null;
 
     if (!file) {
       return NextResponse.json({ error: "No file provided" }, { status: 400 });
+    }
+
+    if (isFileTooLarge(file)) {
+      return NextResponse.json({ error: "File exceeds the 10 MB limit." }, { status: 400 });
     }
 
     const text = await extractText(file);
@@ -123,10 +137,7 @@ export async function POST(request: NextRequest) {
     }
 
     return NextResponse.json(
-      {
-        error:
-          error instanceof Error ? error.message : "Failed to analyse contract",
-      },
+      { error: "Failed to analyse contract" },
       { status: 500 }
     );
   }

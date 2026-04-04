@@ -6,6 +6,7 @@ import remarkGfm from "remark-gfm";
 import { Send, Square, Sparkles, User, Locate } from "lucide-react";
 import { cn, extractSectionRefs } from "@/lib/utils";
 import type { ChatMessage, UserPosition } from "@/lib/types";
+import { supabase } from "@/lib/supabase";
 import QuickActions from "./quick-actions";
 
 interface ChatSidebarProps {
@@ -100,9 +101,13 @@ export default function ChatSidebar({
       abortRef.current = abortController;
 
       try {
+        const session = (await supabase.auth.getSession()).data.session;
         const response = await fetch("/api/chat", {
           method: "POST",
-          headers: { "Content-Type": "application/json" },
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${session?.access_token}`,
+          },
           body: JSON.stringify({
             messages: updatedMessages.map((m) => ({
               role: m.role,

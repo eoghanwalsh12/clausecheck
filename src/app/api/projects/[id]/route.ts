@@ -1,17 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
-import { createClient } from "@supabase/supabase-js";
-
-function getSupabaseClient(authHeader: string | null) {
-  return createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-    {
-      global: {
-        headers: authHeader ? { Authorization: authHeader } : {},
-      },
-    }
-  );
-}
+import { getAuthenticatedUser, unauthorizedResponse } from "@/lib/supabase-server";
+import { checkRateLimit, rateLimitResponse } from "@/lib/rate-limit";
+import { isValidUUID, safeErrorMessage } from "@/lib/validation";
 
 // GET /api/projects/[id] — load a project
 export async function GET(
@@ -20,20 +10,22 @@ export async function GET(
 ) {
   try {
     const { id } = await params;
-    const supabase = getSupabaseClient(request.headers.get("authorization"));
-
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
-    if (!user) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    if (!isValidUUID(id)) {
+      return NextResponse.json({ error: "Invalid project ID" }, { status: 400 });
     }
 
-    const { data, error } = await supabase
+    const auth = await getAuthenticatedUser(request);
+    if (!auth) return unauthorizedResponse();
+
+    if (!checkRateLimit(`projects:${auth.user.id}`, 60)) {
+      return rateLimitResponse();
+    }
+
+    const { data, error } = await auth.supabase
       .from("projects")
       .select("*")
       .eq("id", id)
-      .eq("user_id", user.id)
+      .eq("user_id", auth.user.id)
       .single();
 
     if (error) throw error;
@@ -45,7 +37,7 @@ export async function GET(
   } catch (error) {
     console.error("Get project error:", error);
     return NextResponse.json(
-      { error: error instanceof Error ? error.message : "Failed to load project" },
+      { error: safeErrorMessage(error, "Failed to load project") },
       { status: 500 }
     );
   }
@@ -58,13 +50,15 @@ export async function PATCH(
 ) {
   try {
     const { id } = await params;
-    const supabase = getSupabaseClient(request.headers.get("authorization"));
+    if (!isValidUUID(id)) {
+      return NextResponse.json({ error: "Invalid project ID" }, { status: 400 });
+    }
 
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
-    if (!user) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    const auth = await getAuthenticatedUser(request);
+    if (!auth) return unauthorizedResponse();
+
+    if (!checkRateLimit(`projects:${auth.user.id}`, 60)) {
+      return rateLimitResponse();
     }
 
     const body = await request.json();
@@ -74,11 +68,11 @@ export async function PATCH(
     if (body.positionRole !== undefined) updates.position_role = body.positionRole;
     if (body.positionDescription !== undefined) updates.position_description = body.positionDescription;
 
-    const { error } = await supabase
+    const { error } = await auth.supabase
       .from("projects")
       .update(updates)
       .eq("id", id)
-      .eq("user_id", user.id);
+      .eq("user_id", auth.user.id);
 
     if (error) throw error;
 
@@ -86,7 +80,7 @@ export async function PATCH(
   } catch (error) {
     console.error("Update project error:", error);
     return NextResponse.json(
-      { error: error instanceof Error ? error.message : "Failed to update project" },
+      { error: safeErrorMessage(error, "Failed to update project") },
       { status: 500 }
     );
   }
@@ -99,43 +93,45 @@ export async function DELETE(
 ) {
   try {
     const { id } = await params;
-    const supabase = getSupabaseClient(request.headers.get("authorization"));
+    if (!isValidUUID(id)) {
+      return NextResponse.json({ error: "Invalid project ID" }, { status: 400 });
+    }
 
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
-    if (!user) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    const auth = await getAuthenticatedUser(request);
+    if (!auth) return unauthorizedResponse();
+
+    if (!checkRateLimit(`projects:${auth.user.id}`, 60)) {
+      return rateLimitResponse();
     }
 
     // Get project details for storage cleanup
-    const { data: project } = await supabase
+    const { data: project } = await auth.supabase
       .from("projects")
       .select("file_name")
       .eq("id", id)
-      .eq("user_id", user.id)
+      .eq("user_id", auth.user.id)
       .single();
 
-    const { error } = await supabase
+    const { error } = await auth.supabase
       .from("projects")
       .delete()
       .eq("id", id)
-      .eq("user_id", user.id);
+      .eq("user_id", auth.user.id);
 
     if (error) throw error;
 
     // Clean up stored file
     if (project?.file_name) {
-      await supabase.storage
+      await auth.supabase.storage
         .from("documents")
-        .remove([`${user.id}/${id}/${project.file_name}`]);
+        .remove([`${auth.user.id}/${id}/${project.file_name}`]);
     }
 
     return NextResponse.json({ success: true });
   } catch (error) {
     console.error("Delete project error:", error);
     return NextResponse.json(
-      { error: error instanceof Error ? error.message : "Failed to delete project" },
+      { error: safeErrorMessage(error, "Failed to delete project") },
       { status: 500 }
     );
   }

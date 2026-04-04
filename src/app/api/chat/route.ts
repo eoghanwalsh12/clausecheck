@@ -1,5 +1,7 @@
 import { NextRequest } from "next/server";
 import Anthropic from "@anthropic-ai/sdk";
+import { getAuthenticatedUser, unauthorizedResponse } from "@/lib/supabase-server";
+import { checkRateLimit, rateLimitResponse } from "@/lib/rate-limit";
 
 const anthropic = new Anthropic({
   apiKey: process.env.ANTHROPIC_API_KEY!,
@@ -54,6 +56,13 @@ ${documentText.slice(0, 80000)}
 
 export async function POST(request: NextRequest) {
   try {
+    const auth = await getAuthenticatedUser(request);
+    if (!auth) return unauthorizedResponse();
+
+    if (!checkRateLimit(`chat:${auth.user.id}`, 30)) {
+      return rateLimitResponse();
+    }
+
     const body = await request.json();
     const { messages, documentText, userRole, userDescription } = body;
 
@@ -118,12 +127,7 @@ export async function POST(request: NextRequest) {
   } catch (error) {
     console.error("Chat error:", error);
     return new Response(
-      JSON.stringify({
-        error:
-          error instanceof Error
-            ? error.message
-            : "Failed to process chat request",
-      }),
+      JSON.stringify({ error: "Failed to process chat request" }),
       { status: 500, headers: { "Content-Type": "application/json" } }
     );
   }

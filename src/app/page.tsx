@@ -10,6 +10,7 @@ import {
   Scale,
   ArrowRight,
   Upload,
+  Check,
 } from "lucide-react";
 import { useAuth } from "@/lib/auth-context";
 
@@ -135,6 +136,90 @@ export default function HomePage() {
             </div>
           ))}
         </div>
+      </div>
+
+      {/* Pricing */}
+      <div className="mt-20">
+        <h2 className="text-center text-2xl font-semibold">Simple pricing</h2>
+        <p className="mt-2 text-center text-sm text-[var(--muted-foreground)]">
+          Start free. Upgrade when you need more.
+        </p>
+        <div className="mt-8 grid grid-cols-1 gap-6 sm:grid-cols-2 max-w-3xl mx-auto">
+          {/* Free */}
+          <div className="rounded-xl border border-[var(--border)] bg-[var(--card)] p-6 flex flex-col">
+            <div>
+              <h3 className="font-semibold text-lg">Free</h3>
+              <div className="mt-2 flex items-baseline gap-1">
+                <span className="text-3xl font-bold">£0</span>
+                <span className="text-sm text-[var(--muted-foreground)]">/ month</span>
+              </div>
+              <p className="mt-2 text-sm text-[var(--muted-foreground)]">
+                For individuals reviewing the occasional contract.
+              </p>
+            </div>
+            <ul className="mt-6 space-y-2.5 flex-1">
+              {[
+                "3 documents per month",
+                "Interactive AI chat",
+                "Risk assessment & plain English",
+                "1 deliverable per project",
+              ].map((item) => (
+                <li key={item} className="flex items-start gap-2 text-sm">
+                  <Check className="h-4 w-4 mt-0.5 shrink-0 text-emerald-500" />
+                  {item}
+                </li>
+              ))}
+            </ul>
+            <Link
+              href="/workspace"
+              className="mt-6 block rounded-lg border border-[var(--border)] px-4 py-2.5 text-center text-sm font-medium transition-colors hover:bg-[var(--muted)]"
+            >
+              Get started free
+            </Link>
+          </div>
+
+          {/* Pro */}
+          <div className="rounded-xl border-2 border-[var(--primary)] bg-[var(--card)] p-6 flex flex-col relative">
+            <div className="absolute -top-3 left-1/2 -translate-x-1/2 rounded-full bg-[var(--primary)] px-3 py-0.5 text-xs font-medium text-[var(--primary-foreground)]">
+              Most popular
+            </div>
+            <div>
+              <h3 className="font-semibold text-lg">Pro</h3>
+              <div className="mt-2 flex items-baseline gap-1">
+                <span className="text-3xl font-bold">£49</span>
+                <span className="text-sm text-[var(--muted-foreground)]">/ month</span>
+              </div>
+              <p className="mt-2 text-sm text-[var(--muted-foreground)]">
+                For solicitors and small firms reviewing contracts regularly.
+              </p>
+            </div>
+            <ul className="mt-6 space-y-2.5 flex-1">
+              {[
+                "Unlimited documents",
+                "Interactive AI chat",
+                "All 6 quick-action analyses",
+                "Unlimited deliverables",
+                "All 7 deliverable formats",
+                "Export to Word & PDF",
+                "Priority support",
+              ].map((item) => (
+                <li key={item} className="flex items-start gap-2 text-sm">
+                  <Check className="h-4 w-4 mt-0.5 shrink-0 text-emerald-500" />
+                  {item}
+                </li>
+              ))}
+            </ul>
+            <Link
+              href="/workspace"
+              className="mt-6 block rounded-lg bg-[var(--primary)] px-4 py-2.5 text-center text-sm font-medium text-[var(--primary-foreground)] transition-colors hover:opacity-90"
+            >
+              Start free trial
+            </Link>
+          </div>
+        </div>
+        <p className="mt-4 text-center text-xs text-[var(--muted-foreground)]">
+          No credit card required to start. Cancel any time.
+        </p>
       </div>
 
       {/* CTA */}

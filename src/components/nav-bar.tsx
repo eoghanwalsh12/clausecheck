@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { FileText, FolderOpen, LogOut } from "lucide-react";
+import { FileText, FolderOpen, LogOut, Settings } from "lucide-react";
 import { useAuth } from "@/lib/auth-context";
 import AuthModal from "./auth-modal";
 
@@ -12,7 +12,7 @@ export default function NavBar() {
 
   return (
     <>
-      <nav className="sticky top-0 z-40 border-b border-[var(--border)] bg-[var(--background)]/80 backdrop-blur-sm">
+      <nav className="sticky top-0 z-40 border-b border-[var(--border)] bg-white/70 backdrop-blur-md">
         <div className="mx-auto flex h-14 max-w-full items-center justify-between px-4">
           <Link href="/" className="flex items-center gap-2 font-semibold">
             <FileText className="h-5 w-5" />
@@ -38,6 +38,13 @@ export default function NavBar() {
                 <span className="text-xs text-[var(--muted-foreground)]">
                   {user.email}
                 </span>
+                <Link
+                  href="/account"
+                  className="rounded-md p-1.5 text-[var(--muted-foreground)] transition-colors hover:bg-[var(--accent)] hover:text-[var(--foreground)]"
+                  title="Account settings"
+                >
+                  <Settings className="h-4 w-4" />
+                </Link>
                 <button
                   onClick={() => signOut()}
                   className="rounded-md p-1.5 text-[var(--muted-foreground)] transition-colors hover:bg-[var(--accent)] hover:text-[var(--foreground)]"

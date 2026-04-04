@@ -198,8 +198,12 @@ function WorkspaceContent() {
         const formData = new FormData();
         formData.append("file", file);
 
+        const session = (await supabase.auth.getSession()).data.session;
         const response = await fetch("/api/parse", {
           method: "POST",
+          headers: {
+            Authorization: `Bearer ${session?.access_token}`,
+          },
           body: formData,
         });
 
@@ -376,6 +380,12 @@ function WorkspaceContent() {
       <div className="flex h-[calc(100vh-3.5rem)] overflow-hidden">
         {/* Document panel */}
         <div className={cn("flex-1 flex flex-col min-w-0")}>
+          {/* Legal disclaimer banner */}
+          <div className="flex items-center justify-center gap-1.5 border-b border-amber-200 bg-amber-50 px-3 py-1.5 dark:border-amber-800/50 dark:bg-amber-950/20">
+            <span className="text-xs text-amber-700 dark:text-amber-400">
+              AI output is for informational purposes only and does not constitute legal advice. Always verify before relying on any analysis.
+            </span>
+          </div>
           {/* Document toolbar */}
           <div className="flex items-center justify-between border-b border-[var(--border)] bg-[var(--card)] px-3 py-2">
             <div className="flex items-center gap-2 min-w-0">
