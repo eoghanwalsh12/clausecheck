@@ -16,12 +16,17 @@ export function getSupabaseClient(authHeader: string | null): SupabaseClient {
 export async function getAuthenticatedUser(
   request: NextRequest
 ): Promise<{ user: User; supabase: SupabaseClient } | null> {
-  const supabase = getSupabaseClient(request.headers.get("authorization"));
+  const authHeader = request.headers.get("authorization");
+  const token = authHeader?.replace(/^Bearer\s+/i, "") ?? null;
+  if (!token) return null;
+
+  const supabase = getSupabaseClient(authHeader);
   const {
     data: { user },
-  } = await supabase.auth.getUser();
+    error,
+  } = await supabase.auth.getUser(token);
 
-  if (!user) return null;
+  if (error || !user) return null;
   return { user, supabase };
 }
 
