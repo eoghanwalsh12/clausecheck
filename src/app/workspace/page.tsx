@@ -17,10 +17,8 @@ import { cn } from "@/lib/utils";
 import type { DocumentContext, UserPosition, ChatMessage } from "@/lib/types";
 import { useAuth } from "@/lib/auth-context";
 import { supabase } from "@/lib/supabase";
-import ChatSidebar from "@/components/chat-sidebar";
+import WorkspaceSidebar from "@/components/workspace-sidebar";
 import PositionSelector from "@/components/position-selector";
-import DeliveryButton from "@/components/delivery-button";
-import DeliveryScreen from "@/components/delivery-screen";
 
 const DocumentViewer = dynamic(() => import("@/components/document-viewer"), {
   ssr: false,
@@ -61,7 +59,6 @@ function WorkspaceContent() {
   const [selectedText, setSelectedText] = useState<string | null>(null);
   const [highlightText, setHighlightText] = useState<string | null>(null);
   const [activeRefs, setActiveRefs] = useState<string[]>([]);
-  const [showDelivery, setShowDelivery] = useState(false);
 
   // Project persistence state
   const [currentProjectId, setCurrentProjectId] = useState<string | null>(
@@ -382,7 +379,7 @@ function WorkspaceContent() {
         <div className={cn("flex-1 flex flex-col min-w-0")}>
           {/* Legal disclaimer banner */}
           <div className="flex items-center justify-center gap-1.5 border-b border-amber-200 bg-amber-50 px-3 py-1.5 dark:border-amber-800/50 dark:bg-amber-950/20">
-            <span className="text-xs text-amber-700 dark:text-amber-400">
+            <span className="text-xs font-medium text-[var(--foreground)] dark:text-amber-100">
               AI output is for informational purposes only and does not constitute legal advice. Always verify before relying on any analysis.
             </span>
           </div>
@@ -408,10 +405,6 @@ function WorkspaceContent() {
                 <UserCheck className="h-3.5 w-3.5" />
                 {position ? position.role : "Set role"}
               </button>
-              <DeliveryButton
-                onClick={() => setShowDelivery(true)}
-                disabled={!currentProjectId || !user}
-              />
               {sidebarOpen && sidebarExpanded && (
                 <button
                   onClick={() => setSidebarExpanded(false)}
@@ -471,7 +464,7 @@ function WorkspaceContent() {
               sidebarExpanded ? "w-[55%]" : "w-[420px]"
             )}
           >
-            <ChatSidebar
+            <WorkspaceSidebar
               documentText={document.text}
               position={position}
               selectedText={selectedText}
@@ -481,17 +474,13 @@ function WorkspaceContent() {
               onActiveRefsChange={handleActiveRefsChange}
               initialMessages={initialChatHistory}
               onMessagesChange={saveChatHistory}
+              projectId={currentProjectId}
+              userSignedIn={!!user}
             />
           </div>
         )}
       </div>
 
-      {showDelivery && currentProjectId && (
-        <DeliveryScreen
-          projectId={currentProjectId}
-          onClose={() => setShowDelivery(false)}
-        />
-      )}
     </>
   );
 }

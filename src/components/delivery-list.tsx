@@ -31,6 +31,13 @@ interface DeliveryListProps {
   projectId: string;
   onSelect: (id: string) => void;
   refreshKey?: number;
+  /**
+   * `embedded` (default) — bordered block with "Previous Deliverables" header;
+   *   hides itself when there are no items (legacy behavior).
+   * `menu` — compact variant without the outer border; renders an empty state
+   *   message when there are no items.
+   */
+  variant?: "embedded" | "menu";
 }
 
 const FORMAT_ICONS: Record<DeliverableFormat, typeof Mail> = {
@@ -64,7 +71,12 @@ function timeAgo(dateStr: string): string {
   return `${days}d ago`;
 }
 
-export default function DeliveryList({ projectId, onSelect, refreshKey }: DeliveryListProps) {
+export default function DeliveryList({
+  projectId,
+  onSelect,
+  refreshKey,
+  variant = "embedded",
+}: DeliveryListProps) {
   const [items, setItems] = useState<DeliverableListItem[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [deletingId, setDeletingId] = useState<string | null>(null);
@@ -120,13 +132,32 @@ export default function DeliveryList({ projectId, onSelect, refreshKey }: Delive
     );
   }
 
-  if (items.length === 0) return null;
+  if (items.length === 0) {
+    if (variant === "menu") {
+      return (
+        <div className="flex items-center gap-2 px-1 py-2">
+          <FolderOpen className="h-4 w-4 text-[var(--muted-foreground)]" />
+          <p className="text-xs text-[var(--muted-foreground)]">
+            No saved deliverables yet
+          </p>
+        </div>
+      );
+    }
+    return null;
+  }
+
+  const wrapperClass =
+    variant === "menu"
+      ? ""
+      : "border-t border-[var(--border)] mt-6 pt-6";
 
   return (
-    <div className="border-t border-[var(--border)] mt-6 pt-6">
+    <div className={wrapperClass}>
       <div className="flex items-center gap-2 mb-3">
         <FolderOpen className="h-4 w-4 text-[var(--muted-foreground)]" />
-        <h3 className="text-sm font-semibold">Previous Deliverables</h3>
+        <h3 className="text-sm font-semibold">
+          {variant === "menu" ? "Saved deliverables" : "Previous Deliverables"}
+        </h3>
       </div>
       <div className="space-y-2">
         {items.map((item) => {
