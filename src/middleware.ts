@@ -22,6 +22,9 @@ export function middleware(_request: import("next/server").NextRequest) {
     "img-src 'self' blob: data:",
     "font-src 'self' data:",
     `connect-src 'self' ${supabaseUrl} https://*.supabase.co`,
+    // PDF.js loads its worker from /pdf.worker.min.mjs (same-origin) and
+    // may spawn additional workers via blob: URLs internally.
+    "worker-src 'self' blob:",
     "frame-ancestors 'none'",
     "base-uri 'self'",
     "form-action 'self'",

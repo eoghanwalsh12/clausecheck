@@ -14,8 +14,9 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
-// Set up PDF.js worker
-pdfjs.GlobalWorkerOptions.workerSrc = `//unpkg.com/pdfjs-dist@${pdfjs.version}/build/pdf.worker.min.mjs`;
+// Set up PDF.js worker — served from /public so it's same-origin and
+// doesn't fall foul of our strict script-src CSP.
+pdfjs.GlobalWorkerOptions.workerSrc = "/pdf.worker.min.mjs";
 
 interface DocumentViewerProps {
   fileUrl: string;
