@@ -459,104 +459,115 @@ export default function DeliveryEditor({
         </div>
       </div>
 
-      {/* Toolbar (visible when editing) */}
-      {isEditing && !isGenerating && editor && (
+      {/* Toolbar (always visible once generation is done so Edit/Preview toggle is reachable) */}
+      {!isGenerating && editor && (
         <div className="flex items-center gap-0.5 border-b border-[var(--border)] bg-[var(--card)] px-4 py-1.5 flex-wrap">
-          <ToolbarButton
-            onClick={() => editor.chain().focus().toggleBold().run()}
-            active={editor.isActive("bold")}
-            title="Bold"
-          >
-            <Bold className="h-3.5 w-3.5" />
-          </ToolbarButton>
-          <ToolbarButton
-            onClick={() => editor.chain().focus().toggleItalic().run()}
-            active={editor.isActive("italic")}
-            title="Italic"
-          >
-            <Italic className="h-3.5 w-3.5" />
-          </ToolbarButton>
+          {isEditing && (
+            <>
+              <ToolbarButton
+                onClick={() => editor.chain().focus().toggleBold().run()}
+                active={editor.isActive("bold")}
+                title="Bold"
+              >
+                <Bold className="h-3.5 w-3.5" />
+              </ToolbarButton>
+              <ToolbarButton
+                onClick={() => editor.chain().focus().toggleItalic().run()}
+                active={editor.isActive("italic")}
+                title="Italic"
+              >
+                <Italic className="h-3.5 w-3.5" />
+              </ToolbarButton>
 
-          <div className="w-px h-4 bg-[var(--border)] mx-1" />
+              <div className="w-px h-4 bg-[var(--border)] mx-1" />
 
-          <ToolbarButton
-            onClick={() => editor.chain().focus().toggleHeading({ level: 1 }).run()}
-            active={editor.isActive("heading", { level: 1 })}
-            title="Heading 1"
-          >
-            <Heading1 className="h-3.5 w-3.5" />
-          </ToolbarButton>
-          <ToolbarButton
-            onClick={() => editor.chain().focus().toggleHeading({ level: 2 }).run()}
-            active={editor.isActive("heading", { level: 2 })}
-            title="Heading 2"
-          >
-            <Heading2 className="h-3.5 w-3.5" />
-          </ToolbarButton>
-          <ToolbarButton
-            onClick={() => editor.chain().focus().toggleHeading({ level: 3 }).run()}
-            active={editor.isActive("heading", { level: 3 })}
-            title="Heading 3"
-          >
-            <Heading3 className="h-3.5 w-3.5" />
-          </ToolbarButton>
+              <ToolbarButton
+                onClick={() => editor.chain().focus().toggleHeading({ level: 1 }).run()}
+                active={editor.isActive("heading", { level: 1 })}
+                title="Heading 1"
+              >
+                <Heading1 className="h-3.5 w-3.5" />
+              </ToolbarButton>
+              <ToolbarButton
+                onClick={() => editor.chain().focus().toggleHeading({ level: 2 }).run()}
+                active={editor.isActive("heading", { level: 2 })}
+                title="Heading 2"
+              >
+                <Heading2 className="h-3.5 w-3.5" />
+              </ToolbarButton>
+              <ToolbarButton
+                onClick={() => editor.chain().focus().toggleHeading({ level: 3 }).run()}
+                active={editor.isActive("heading", { level: 3 })}
+                title="Heading 3"
+              >
+                <Heading3 className="h-3.5 w-3.5" />
+              </ToolbarButton>
 
-          <div className="w-px h-4 bg-[var(--border)] mx-1" />
+              <div className="w-px h-4 bg-[var(--border)] mx-1" />
 
-          <ToolbarButton
-            onClick={() => editor.chain().focus().toggleBulletList().run()}
-            active={editor.isActive("bulletList")}
-            title="Bullet List"
-          >
-            <List className="h-3.5 w-3.5" />
-          </ToolbarButton>
-          <ToolbarButton
-            onClick={() => editor.chain().focus().toggleOrderedList().run()}
-            active={editor.isActive("orderedList")}
-            title="Numbered List"
-          >
-            <ListOrdered className="h-3.5 w-3.5" />
-          </ToolbarButton>
-          <ToolbarButton
-            onClick={() => editor.chain().focus().toggleBlockquote().run()}
-            active={editor.isActive("blockquote")}
-            title="Blockquote"
-          >
-            <Quote className="h-3.5 w-3.5" />
-          </ToolbarButton>
-          <ToolbarButton
-            onClick={() => editor.chain().focus().setHorizontalRule().run()}
-            title="Horizontal Rule"
-          >
-            <Minus className="h-3.5 w-3.5" />
-          </ToolbarButton>
+              <ToolbarButton
+                onClick={() => editor.chain().focus().toggleBulletList().run()}
+                active={editor.isActive("bulletList")}
+                title="Bullet List"
+              >
+                <List className="h-3.5 w-3.5" />
+              </ToolbarButton>
+              <ToolbarButton
+                onClick={() => editor.chain().focus().toggleOrderedList().run()}
+                active={editor.isActive("orderedList")}
+                title="Numbered List"
+              >
+                <ListOrdered className="h-3.5 w-3.5" />
+              </ToolbarButton>
+              <ToolbarButton
+                onClick={() => editor.chain().focus().toggleBlockquote().run()}
+                active={editor.isActive("blockquote")}
+                title="Blockquote"
+              >
+                <Quote className="h-3.5 w-3.5" />
+              </ToolbarButton>
+              <ToolbarButton
+                onClick={() => editor.chain().focus().setHorizontalRule().run()}
+                title="Horizontal Rule"
+              >
+                <Minus className="h-3.5 w-3.5" />
+              </ToolbarButton>
 
-          <div className="w-px h-4 bg-[var(--border)] mx-1" />
+              <div className="w-px h-4 bg-[var(--border)] mx-1" />
 
-          <ToolbarButton
-            onClick={() => editor.chain().focus().undo().run()}
-            title="Undo"
-          >
-            <Undo2 className="h-3.5 w-3.5" />
-          </ToolbarButton>
-          <ToolbarButton
-            onClick={() => editor.chain().focus().redo().run()}
-            title="Redo"
-          >
-            <Redo2 className="h-3.5 w-3.5" />
-          </ToolbarButton>
+              <ToolbarButton
+                onClick={() => editor.chain().focus().undo().run()}
+                title="Undo"
+              >
+                <Undo2 className="h-3.5 w-3.5" />
+              </ToolbarButton>
+              <ToolbarButton
+                onClick={() => editor.chain().focus().redo().run()}
+                title="Redo"
+              >
+                <Redo2 className="h-3.5 w-3.5" />
+              </ToolbarButton>
+            </>
+          )}
+
+          {!isEditing && (
+            <span className="text-xs text-[var(--muted-foreground)] px-1">
+              Preview mode
+            </span>
+          )}
 
           <div className="flex-1" />
 
           <button
             onClick={() => {
-              editor.setEditable(!editor.isEditable);
-              setIsEditing(!isEditing);
+              const nextEditing = !isEditing;
+              editor.setEditable(nextEditing);
+              setIsEditing(nextEditing);
             }}
-            className="flex items-center gap-1 rounded-md px-2 py-1 text-xs text-[var(--muted-foreground)] hover:bg-[var(--accent)] transition-colors"
+            className="flex items-center gap-1 rounded-md border border-[var(--border)] px-2 py-1 text-xs font-medium text-[var(--foreground)] hover:bg-[var(--accent)] transition-colors"
           >
-            {editor.isEditable ? <Eye className="h-3 w-3" /> : <Pencil className="h-3 w-3" />}
-            {editor.isEditable ? "Preview" : "Edit"}
+            {isEditing ? <Eye className="h-3 w-3" /> : <Pencil className="h-3 w-3" />}
+            {isEditing ? "Preview" : "Edit"}
           </button>
         </div>
       )}

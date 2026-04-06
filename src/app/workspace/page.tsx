@@ -56,9 +56,12 @@ function WorkspaceContent() {
   const [error, setError] = useState("");
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [sidebarExpanded, setSidebarExpanded] = useState(false);
+  const [sidebarWidth, setSidebarWidth] = useState(420);
   const [selectedText, setSelectedText] = useState<string | null>(null);
   const [highlightText, setHighlightText] = useState<string | null>(null);
   const [activeRefs, setActiveRefs] = useState<string[]>([]);
+  const isDraggingRef = useRef(false);
+  const containerRef = useRef<HTMLDivElement>(null);
 
   // Project persistence state
   const [currentProjectId, setCurrentProjectId] = useState<string | null>(
@@ -305,6 +308,38 @@ function WorkspaceContent() {
     setActiveRefs(refs);
   }, []);
 
+  // Sidebar resize drag handlers
+  const handleResizeStart = useCallback((e: React.MouseEvent) => {
+    e.preventDefault();
+    isDraggingRef.current = true;
+
+    const startX = e.clientX;
+    const startWidth = sidebarWidth;
+
+    const onMouseMove = (ev: MouseEvent) => {
+      if (!isDraggingRef.current) return;
+      const delta = startX - ev.clientX;
+      const containerWidth = containerRef.current?.offsetWidth || window.innerWidth;
+      const minW = 280;
+      const maxW = containerWidth * 0.7;
+      setSidebarWidth(Math.min(maxW, Math.max(minW, startWidth + delta)));
+      setSidebarExpanded(false); // exit preset expanded mode once user drags
+    };
+
+    const onMouseUp = () => {
+      isDraggingRef.current = false;
+      window.document.removeEventListener("mousemove", onMouseMove);
+      window.document.removeEventListener("mouseup", onMouseUp);
+      window.document.body.style.cursor = "";
+      window.document.body.style.userSelect = "";
+    };
+
+    window.document.body.style.cursor = "col-resize";
+    window.document.body.style.userSelect = "none";
+    window.document.addEventListener("mousemove", onMouseMove);
+    window.document.addEventListener("mouseup", onMouseUp);
+  }, [sidebarWidth]);
+
   // Loading state for project load
   if (isLoadingProject) {
     return (
@@ -374,7 +409,7 @@ function WorkspaceContent() {
         />
       )}
 
-      <div className="flex h-[calc(100vh-3.5rem)] overflow-hidden">
+      <div ref={containerRef} className="flex h-[calc(100vh-3.5rem)] overflow-hidden">
         {/* Document panel */}
         <div className={cn("flex-1 flex flex-col min-w-0")}>
           {/* Legal disclaimer banner */}
@@ -451,7 +486,10 @@ function WorkspaceContent() {
 
         {/* Resizable divider */}
         {sidebarOpen && (
-          <div className="flex w-1 cursor-col-resize items-center bg-[var(--border)] hover:bg-[var(--muted-foreground)]/30">
+          <div
+            onMouseDown={handleResizeStart}
+            className="flex w-1.5 cursor-col-resize items-center justify-center bg-[var(--border)] hover:bg-[var(--primary)]/40 active:bg-[var(--primary)]/60 transition-colors"
+          >
             <GripVertical className="h-4 w-4 text-[var(--muted-foreground)]" />
           </div>
         )}
@@ -459,10 +497,8 @@ function WorkspaceContent() {
         {/* Chat sidebar */}
         {sidebarOpen && (
           <div
-            className={cn(
-              "shrink-0 border-l border-[var(--border)] transition-all duration-300 ease-in-out",
-              sidebarExpanded ? "w-[55%]" : "w-[420px]"
-            )}
+            className="shrink-0 border-l border-[var(--border)]"
+            style={{ width: sidebarExpanded ? "55%" : `${sidebarWidth}px` }}
           >
             <WorkspaceSidebar
               documentText={document.text}

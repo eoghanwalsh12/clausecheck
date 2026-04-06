@@ -31,19 +31,15 @@ Keep it concise (under 500 words in the body). Use the tone appropriate for a se
     defaultTitle: "Client Advisory Email",
   },
   written_report: {
-    instruction: `Produce a comprehensive legal report with the following structure:
-- Title page information (matter name, date, prepared by, confidentiality notice)
-- Table of Contents
+    instruction: `Produce a legal report. Structure:
 - Executive Summary (1-2 paragraphs)
-- Background & Scope of Review
-- Key Findings (organised by topic, with numbered paragraphs)
-- Risk Analysis (with risk ratings: Low/Medium/High/Critical for each area)
+- Key Findings (organised by topic, numbered paragraphs)
+- Risk Analysis (risk ratings: Low/Medium/High/Critical per area)
 - Recommendations (numbered, actionable)
 - Conclusion
-- Appendix references where applicable
 
-Use formal legal report conventions: numbered paragraphs (1.1, 1.2, etc.), professional headings, and precise language. Target 1500-3000 words.`,
-    maxTokens: 12000,
+Use numbered paragraphs (1.1, 1.2), professional headings. Be concise — target 800-1500 words. Cut filler.`,
+    maxTokens: 8000,
     defaultTitle: "Legal Review Report",
   },
   annotated_document: {
@@ -120,31 +116,23 @@ Organise by priority. Be direct and strategic. This is a working document for th
     defaultTitle: "Negotiation Playbook",
   },
   risk_register: {
-    instruction: `Produce a comprehensive risk register. Structure:
+    instruction: `Produce a risk register. Structure:
 
-1. Risk Summary Dashboard:
-   - Total risks identified
-   - Distribution: Critical / High / Medium / Low
-   - Top 3 priority risks
+1. Risk Summary: total count, distribution by severity (Critical/High/Medium/Low), top 3 risks.
 
-2. Risk Register Table — for each risk:
-   - Risk ID (R-001, R-002, etc.)
-   - Clause/Section Reference
-   - Risk Category (Financial, Operational, Legal, Reputational, Compliance)
-   - Risk Description (clear, specific)
-   - Likelihood (1-5 scale with descriptor)
-   - Impact (1-5 scale with descriptor)
-   - Risk Score (Likelihood x Impact)
-   - Risk Owner (suggested role/party)
-   - Mitigation Strategy (specific, actionable)
-   - Recommended Action
-   - Priority (Immediate / Short-term / Monitor)
+2. Risk Table — for each risk:
+   - Risk ID (R-001, etc.)
+   - Clause Reference
+   - Category (Financial/Operational/Legal/Reputational/Compliance)
+   - Description (1-2 sentences)
+   - Likelihood (1-5) × Impact (1-5) = Score
+   - Mitigation (1 sentence)
+   - Priority (Immediate/Short-term/Monitor)
 
-3. Risk Heat Map description (5x5 matrix showing risk distribution)
-4. Key Recommendations (top 5 actions to reduce overall risk exposure)
+3. Top 5 recommended actions.
 
-Be thorough — identify all material risks from the document.`,
-    maxTokens: 10000,
+Be thorough but concise — identify all material risks, describe each briefly.`,
+    maxTokens: 8000,
     defaultTitle: "Risk Register",
   },
 };
@@ -173,7 +161,7 @@ function buildGenerationPrompt(
     positionContext = `The user's position in this document: "${positionRole}"${positionDescription ? `. Additional context: ${positionDescription}` : ""}.`;
   }
 
-  return `You are a senior legal professional at a leading law firm producing a formal deliverable document. You must produce output that would be indistinguishable from work product at a top-tier firm.
+  return `You are a senior legal professional producing a formal deliverable. Be direct and concise — no filler, no padding, no generic disclaimers. Every sentence should carry substance. Avoid restating what the document already says when the reader has access to it. Focus on analysis, risk, and actionable points.
 
 ${AUDIENCE_INSTRUCTIONS[audience]}
 
