@@ -573,7 +573,7 @@ export default function DeliveryEditor({
       )}
 
       {/* Editor / Generation preview */}
-      <div className="flex-1 overflow-auto bg-white dark:bg-[var(--background)]">
+      <div className="flex-1 overflow-auto bg-[var(--background)]">
         {isGenerating ? (
           <div className="px-8 py-6">
             <div className="flex items-center gap-2 mb-4 text-sm text-[var(--muted-foreground)]">

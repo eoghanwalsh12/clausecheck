@@ -1,9 +1,9 @@
 import type { Metadata } from "next";
 import localFont from "next/font/local";
+import { Playfair_Display } from "next/font/google";
 import { AuthProvider } from "@/lib/auth-context";
 import NavBar from "@/components/nav-bar";
 import Footer from "@/components/footer";
-import BackgroundBlobs from "@/components/background-blobs";
 import CookieBanner from "@/components/cookie-banner";
 import "./globals.css";
 
@@ -16,6 +16,12 @@ const geistMono = localFont({
   src: "./fonts/GeistMonoVF.woff",
   variable: "--font-geist-mono",
   weight: "100 900",
+});
+const playfair = Playfair_Display({
+  subsets: ["latin"],
+  variable: "--font-playfair",
+  weight: ["400", "500", "600", "700"],
+  display: "swap",
 });
 
 export const metadata: Metadata = {
@@ -32,10 +38,9 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body
-        className={`${geistSans.variable} ${geistMono.variable} antialiased`}
+        className={`${geistSans.variable} ${geistMono.variable} ${playfair.variable} antialiased`}
       >
         <AuthProvider>
-          <BackgroundBlobs />
           <NavBar />
           <main>{children}</main>
           <Footer />

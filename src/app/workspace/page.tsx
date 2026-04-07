@@ -12,6 +12,7 @@ import {
   UserCheck,
   Minimize2,
   Loader2,
+  AlertTriangle,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { DocumentContext, UserPosition, ChatMessage } from "@/lib/types";
@@ -34,7 +35,7 @@ export default function WorkspacePage() {
     <Suspense
       fallback={
         <div className="flex h-[calc(100vh-3.5rem)] items-center justify-center">
-          <Loader2 className="h-6 w-6 animate-spin text-[var(--muted-foreground)]" />
+          <Loader2 className="h-5 w-5 animate-spin text-[var(--muted-foreground)]" />
         </div>
       }
     >
@@ -63,17 +64,9 @@ function WorkspaceContent() {
   const isDraggingRef = useRef(false);
   const containerRef = useRef<HTMLDivElement>(null);
 
-  // Project persistence state
-  const [currentProjectId, setCurrentProjectId] = useState<string | null>(
-    projectId
-  );
-  const [initialChatHistory, setInitialChatHistory] = useState<ChatMessage[]>(
-    []
-  );
+  const [currentProjectId, setCurrentProjectId] = useState<string | null>(projectId);
+  const [initialChatHistory, setInitialChatHistory] = useState<ChatMessage[]>([]);
   const saveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
-  // Track whether a fresh upload already set the document — prevents the
-  // load-project effect from overwriting the local blob URL / htmlContent
-  // when replaceState adds ?project=xxx to the URL after upload.
   const freshUploadRef = useRef(false);
 
   // Load existing project
@@ -82,11 +75,7 @@ function WorkspaceContent() {
       setIsLoadingProject(false);
       return;
     }
-
-    // Skip if we just uploaded — the document is already set from the local file
-    if (freshUploadRef.current) {
-      return;
-    }
+    if (freshUploadRef.current) return;
 
     const loadProject = async () => {
       try {
@@ -103,12 +92,11 @@ function WorkspaceContent() {
 
         const project = await res.json();
 
-        // Try to get the original file from Supabase Storage
         let fileUrl = "";
         const storagePath = `${user.id}/${project.id}/${project.file_name}`;
         const { data: signedUrlData } = await supabase.storage
           .from("documents")
-          .createSignedUrl(storagePath, 3600); // 1 hour expiry
+          .createSignedUrl(storagePath, 3600);
         if (signedUrlData?.signedUrl) {
           fileUrl = signedUrlData.signedUrl;
         }
@@ -147,9 +135,7 @@ function WorkspaceContent() {
   const saveChatHistory = useCallback(
     (messages: ChatMessage[]) => {
       if (!currentProjectId || !user) return;
-
       if (saveTimeoutRef.current) clearTimeout(saveTimeoutRef.current);
-
       saveTimeoutRef.current = setTimeout(async () => {
         const session = (await supabase.auth.getSession()).data.session;
         await fetch(`/api/projects/${currentProjectId}`, {
@@ -165,7 +151,6 @@ function WorkspaceContent() {
     [currentProjectId, user]
   );
 
-  // Save position when it changes
   const handlePositionSelect = useCallback(
     async (pos: UserPosition) => {
       setPosition(pos);
@@ -201,9 +186,7 @@ function WorkspaceContent() {
         const session = (await supabase.auth.getSession()).data.session;
         const response = await fetch("/api/parse", {
           method: "POST",
-          headers: {
-            Authorization: `Bearer ${session?.access_token}`,
-          },
+          headers: { Authorization: `Bearer ${session?.access_token}` },
           body: formData,
         });
 
@@ -213,11 +196,8 @@ function WorkspaceContent() {
         }
 
         const { text, htmlContent } = await response.json();
-
         const fileUrl = URL.createObjectURL(file);
-        const fileType = file.name.toLowerCase().endsWith(".pdf")
-          ? "pdf"
-          : "docx";
+        const fileType = file.name.toLowerCase().endsWith(".pdf") ? "pdf" : "docx";
 
         setDocument({
           fileName: file.name,
@@ -227,7 +207,6 @@ function WorkspaceContent() {
           htmlContent,
         });
 
-        // Save project to Supabase if user is signed in
         if (user) {
           try {
             const session = (await supabase.auth.getSession()).data.session;
@@ -247,17 +226,13 @@ function WorkspaceContent() {
             if (res.ok) {
               const { id } = await res.json();
               setCurrentProjectId(id);
-              // Update URL without navigation
               window.history.replaceState(null, "", `/workspace?project=${id}`);
-
-              // Upload original file to Supabase Storage
               const storagePath = `${user.id}/${id}/${file.name}`;
               await supabase.storage
                 .from("documents")
                 .upload(storagePath, file, { upsert: true });
             }
           } catch {
-            // Non-critical — project still works locally
             console.error("Failed to save project to cloud");
           }
         }
@@ -265,9 +240,7 @@ function WorkspaceContent() {
         freshUploadRef.current = true;
         setShowPositionSelector(true);
       } catch (err) {
-        setError(
-          err instanceof Error ? err.message : "Failed to load document"
-        );
+        setError(err instanceof Error ? err.message : "Failed to load document");
       } finally {
         setIsUploading(false);
       }
@@ -292,27 +265,14 @@ function WorkspaceContent() {
     [handleFileUpload]
   );
 
-  const handleTextSelect = useCallback((text: string) => {
-    setSelectedText(text);
-  }, []);
+  const handleTextSelect = useCallback((text: string) => setSelectedText(text), []);
+  const handleHighlight = useCallback((text: string) => setHighlightText(text), []);
+  const handleExpandRequest = useCallback(() => setSidebarExpanded(true), []);
+  const handleActiveRefsChange = useCallback((refs: string[]) => setActiveRefs(refs), []);
 
-  const handleHighlight = useCallback((text: string) => {
-    setHighlightText(text);
-  }, []);
-
-  const handleExpandRequest = useCallback(() => {
-    setSidebarExpanded(true);
-  }, []);
-
-  const handleActiveRefsChange = useCallback((refs: string[]) => {
-    setActiveRefs(refs);
-  }, []);
-
-  // Sidebar resize drag handlers
   const handleResizeStart = useCallback((e: React.MouseEvent) => {
     e.preventDefault();
     isDraggingRef.current = true;
-
     const startX = e.clientX;
     const startWidth = sidebarWidth;
 
@@ -323,7 +283,7 @@ function WorkspaceContent() {
       const minW = 280;
       const maxW = containerWidth * 0.7;
       setSidebarWidth(Math.min(maxW, Math.max(minW, startWidth + delta)));
-      setSidebarExpanded(false); // exit preset expanded mode once user drags
+      setSidebarExpanded(false);
     };
 
     const onMouseUp = () => {
@@ -340,15 +300,13 @@ function WorkspaceContent() {
     window.document.addEventListener("mouseup", onMouseUp);
   }, [sidebarWidth]);
 
-  // Loading state for project load
+  // Loading state
   if (isLoadingProject) {
     return (
       <div className="flex h-[calc(100vh-3.5rem)] items-center justify-center">
         <div className="text-center">
-          <Loader2 className="mx-auto h-6 w-6 animate-spin text-[var(--muted-foreground)]" />
-          <p className="mt-2 text-sm text-[var(--muted-foreground)]">
-            Loading project...
-          </p>
+          <Loader2 className="mx-auto h-5 w-5 animate-spin text-[var(--muted-foreground)]" />
+          <p className="mt-2 text-sm text-[var(--muted-foreground)]">Loading project...</p>
         </div>
       </div>
     );
@@ -357,18 +315,23 @@ function WorkspaceContent() {
   // Upload screen
   if (!document) {
     return (
-      <div className="flex h-[calc(100vh-3.5rem)] items-center justify-center p-4">
+      <div className="flex h-[calc(100vh-3.5rem)] items-center justify-center p-6">
         <div
           className="w-full max-w-lg"
           onDragOver={(e) => e.preventDefault()}
           onDrop={handleDrop}
         >
-          <div className="rounded-xl border-2 border-dashed border-[var(--border)] p-12 text-center transition-colors hover:border-[var(--muted-foreground)]">
-            <Upload className="mx-auto h-10 w-10 text-[var(--muted-foreground)]" />
-            <h2 className="mt-4 text-lg font-semibold">
+          <div className="rounded-2xl border border-dashed border-[var(--border)] bg-[var(--card)] p-14 text-center transition-all hover:border-[var(--primary)]/40">
+            <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-xl border border-[var(--border)] bg-[var(--muted)]">
+              <Upload className="h-6 w-6 text-[var(--primary)]" />
+            </div>
+            <h2
+              className="mt-5 text-xl font-semibold"
+              style={{ fontFamily: "var(--font-playfair), Georgia, serif" }}
+            >
               Open a legal document
             </h2>
-            <p className="mt-1 text-sm text-[var(--muted-foreground)]">
+            <p className="mt-2 text-sm text-[var(--muted-foreground)]">
               Drop a PDF or Word document here, or click to browse
             </p>
             <input
@@ -380,7 +343,7 @@ function WorkspaceContent() {
             />
             <label
               htmlFor="file-input"
-              className="mt-4 inline-block cursor-pointer rounded-lg bg-[var(--primary)] px-6 py-2.5 text-sm font-medium text-[var(--primary-foreground)] transition-colors hover:opacity-90"
+              className="mt-5 inline-block cursor-pointer rounded-lg bg-[var(--primary)] px-6 py-2.5 text-sm font-semibold text-[var(--primary-foreground)] transition-all hover:opacity-90 hover:shadow-[0_0_20px_rgba(196,162,72,0.25)]"
             >
               {isUploading ? "Processing..." : "Choose File"}
             </label>
@@ -389,17 +352,17 @@ function WorkspaceContent() {
             )}
           </div>
           <p className="mt-3 text-center text-xs text-[var(--muted-foreground)]">
-            Supports PDF and DOCX files up to 10MB.
+            Supports PDF and DOCX · up to 10 MB
             {user
-              ? " Your project will be saved automatically."
-              : " Sign in to save your projects."}
+              ? " · Project saved automatically"
+              : " · Sign in to save projects"}
           </p>
         </div>
       </div>
     );
   }
 
-  // Workspace with document + chat
+  // Workspace
   return (
     <>
       {showPositionSelector && (
@@ -411,18 +374,20 @@ function WorkspaceContent() {
 
       <div ref={containerRef} className="flex h-[calc(100vh-3.5rem)] overflow-hidden">
         {/* Document panel */}
-        <div className={cn("flex-1 flex flex-col min-w-0")}>
-          {/* Legal disclaimer banner */}
-          <div className="flex items-center justify-center gap-1.5 border-b border-amber-200 bg-amber-50 px-3 py-1.5 dark:border-amber-800/50 dark:bg-amber-950/20">
-            <span className="text-xs font-medium text-[var(--foreground)] dark:text-amber-100">
-              AI output is for informational purposes only and does not constitute legal advice. Always verify before relying on any analysis.
+        <div className="flex-1 flex flex-col min-w-0">
+          {/* Legal disclaimer */}
+          <div className="flex items-center justify-center gap-1.5 border-b border-[var(--warning)]/15 bg-[var(--warning)]/5 px-4 py-1.5">
+            <AlertTriangle className="h-3 w-3 shrink-0 text-[var(--warning)]" />
+            <span className="text-xs text-[var(--muted-foreground)]">
+              AI output is for informational purposes only and does not constitute legal advice.
             </span>
           </div>
-          {/* Document toolbar */}
+
+          {/* Toolbar */}
           <div className="flex items-center justify-between border-b border-[var(--border)] bg-[var(--card)] px-3 py-2">
             <div className="flex items-center gap-2 min-w-0">
-              <FileText className="h-4 w-4 shrink-0 text-[var(--muted-foreground)]" />
-              <span className="truncate text-sm font-medium">
+              <FileText className="h-3.5 w-3.5 shrink-0 text-[var(--muted-foreground)]" />
+              <span className="truncate text-sm font-medium text-[var(--foreground)]">
                 {document.fileName}
               </span>
             </div>
@@ -430,10 +395,8 @@ function WorkspaceContent() {
               <button
                 onClick={() => setShowPositionSelector(true)}
                 className={cn(
-                  "flex items-center gap-1.5 rounded-md px-2 py-1 text-xs transition-colors",
-                  position
-                    ? "text-[var(--foreground)] hover:bg-[var(--accent)]"
-                    : "text-[var(--muted-foreground)] hover:bg-[var(--accent)]"
+                  "flex items-center gap-1.5 rounded-md px-2 py-1 text-xs transition-colors hover:bg-[var(--accent)]",
+                  position ? "text-[var(--primary)]" : "text-[var(--muted-foreground)]"
                 )}
                 title="Change your role"
               >
@@ -443,7 +406,7 @@ function WorkspaceContent() {
               {sidebarOpen && sidebarExpanded && (
                 <button
                   onClick={() => setSidebarExpanded(false)}
-                  className="rounded-md p-1 text-[var(--muted-foreground)] hover:bg-[var(--accent)]"
+                  className="rounded-md p-1 text-[var(--muted-foreground)] transition-colors hover:bg-[var(--accent)]"
                   title="Minimize sidebar"
                 >
                   <Minimize2 className="h-4 w-4" />
@@ -458,7 +421,7 @@ function WorkspaceContent() {
                     setSidebarOpen(true);
                   }
                 }}
-                className="rounded-md p-1 text-[var(--muted-foreground)] hover:bg-[var(--accent)]"
+                className="rounded-md p-1 text-[var(--muted-foreground)] transition-colors hover:bg-[var(--accent)]"
                 title={sidebarOpen ? "Close assistant" : "Open assistant"}
               >
                 {sidebarOpen ? (
@@ -488,7 +451,7 @@ function WorkspaceContent() {
         {sidebarOpen && (
           <div
             onMouseDown={handleResizeStart}
-            className="flex w-1.5 cursor-col-resize items-center justify-center bg-[var(--border)] hover:bg-[var(--primary)]/40 active:bg-[var(--primary)]/60 transition-colors"
+            className="flex w-1.5 cursor-col-resize items-center justify-center bg-[var(--border)] hover:bg-[var(--primary)]/30 active:bg-[var(--primary)]/50 transition-colors"
           >
             <GripVertical className="h-4 w-4 text-[var(--muted-foreground)]" />
           </div>
@@ -516,7 +479,6 @@ function WorkspaceContent() {
           </div>
         )}
       </div>
-
     </>
   );
 }

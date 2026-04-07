@@ -8,7 +8,6 @@ import DeliveryPanel from "./delivery-panel";
 import type { ChatMessage, UserPosition } from "@/lib/types";
 
 interface WorkspaceSidebarProps {
-  // Chat props
   documentText: string;
   position: UserPosition | null;
   selectedText: string | null;
@@ -18,7 +17,6 @@ interface WorkspaceSidebarProps {
   onActiveRefsChange?: (refs: string[]) => void;
   initialMessages?: ChatMessage[];
   onMessagesChange?: (messages: ChatMessage[]) => void;
-  // Delivery props
   projectId: string | null;
   userSignedIn: boolean;
 }
@@ -49,7 +47,7 @@ export default function WorkspaceSidebar({
         <button
           onClick={() => setActiveTab("chat")}
           className={cn(
-            "flex-1 flex items-center justify-center gap-1.5 px-4 py-2.5 text-xs font-medium transition-colors border-b-2",
+            "flex-1 flex items-center justify-center gap-1.5 px-4 py-2.5 text-xs font-medium transition-all border-b-2",
             activeTab === "chat"
               ? "border-[var(--primary)] text-[var(--foreground)]"
               : "border-transparent text-[var(--muted-foreground)] hover:text-[var(--foreground)]"
@@ -61,7 +59,7 @@ export default function WorkspaceSidebar({
         <button
           onClick={() => setActiveTab("delivery")}
           className={cn(
-            "flex-1 flex items-center justify-center gap-1.5 px-4 py-2.5 text-xs font-medium transition-colors border-b-2",
+            "flex-1 flex items-center justify-center gap-1.5 px-4 py-2.5 text-xs font-medium transition-all border-b-2",
             activeTab === "delivery"
               ? "border-[var(--primary)] text-[var(--foreground)]"
               : "border-transparent text-[var(--muted-foreground)] hover:text-[var(--foreground)]"

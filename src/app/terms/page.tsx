@@ -10,11 +10,11 @@ export default function TermsPage() {
         Last updated: 29 March 2026
       </p>
 
-      <div className="mt-6 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm dark:border-amber-800 dark:bg-amber-950/30">
-        <p className="font-semibold text-amber-800 dark:text-amber-300">
+      <div className="mt-6 rounded-lg border border-[var(--warning)]/25 bg-[var(--warning)]/6 px-4 py-3 text-sm">
+        <p className="font-semibold text-[var(--warning)]">
           ClauseCheck is not a law firm and does not provide legal advice.
         </p>
-        <p className="mt-1 text-amber-700 dark:text-amber-400">
+        <p className="mt-1 text-[var(--muted-foreground)]">
           The AI-generated analysis and output produced by this service is for
           informational purposes only. It does not constitute legal advice, does not
           create a solicitor-client relationship, and should not be relied upon as a

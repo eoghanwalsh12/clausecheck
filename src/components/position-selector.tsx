@@ -49,36 +49,42 @@ export default function PositionSelector({
     });
   };
 
+  const inputClass = "w-full rounded-lg border border-[var(--border)] bg-[var(--muted)] px-3 py-2 text-sm text-[var(--foreground)] outline-none placeholder:text-[var(--muted-foreground)] focus:border-[var(--primary)]/50 focus:ring-1 focus:ring-[var(--ring)] transition-colors";
+
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
-      <div className="mx-4 w-full max-w-md rounded-xl border border-[var(--border)] bg-[var(--card)] p-6 shadow-xl">
-        <div className="mb-4 flex items-center gap-3">
-          <div className="flex h-10 w-10 items-center justify-center rounded-full bg-[var(--primary)] text-[var(--primary-foreground)]">
-            <UserCheck className="h-5 w-5" />
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm">
+      <div className="mx-4 w-full max-w-md rounded-xl border border-[var(--border)] bg-[var(--card)] p-6 shadow-2xl">
+        <div className="mb-5 flex items-center gap-3">
+          <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-[var(--primary)]/15">
+            <UserCheck className="h-4 w-4 text-[var(--primary)]" />
           </div>
           <div>
-            <h2 className="text-lg font-semibold">What is your role?</h2>
-            <p className="text-sm text-[var(--muted-foreground)]">
-              This helps me tailor my analysis to your interests
+            <h2
+              className="text-base font-semibold"
+              style={{ fontFamily: "var(--font-playfair), Georgia, serif" }}
+            >
+              What is your role?
+            </h2>
+            <p className="text-xs text-[var(--muted-foreground)]">
+              This helps tailor the analysis to your interests
             </p>
           </div>
         </div>
 
         {detectedParties && detectedParties.length > 0 && (
-          <div className="mb-4 rounded-lg bg-[var(--muted)] p-3">
+          <div className="mb-4 rounded-lg border border-[var(--border)] bg-[var(--muted)] p-3">
             <p className="text-xs font-medium text-[var(--muted-foreground)]">
               Parties detected in document:
             </p>
-            <p className="mt-1 text-sm">
+            <p className="mt-1 text-sm text-[var(--foreground)]">
               {detectedParties.join(" / ")}
             </p>
           </div>
         )}
 
-        {/* Role grid */}
         <div className="mb-4">
           <p className="mb-2 text-xs font-medium text-[var(--muted-foreground)]">
-            Select your role:
+            Select your role
           </p>
           <div className="grid grid-cols-3 gap-1.5">
             {COMMON_ROLES.map((role) => (
@@ -89,10 +95,10 @@ export default function PositionSelector({
                   setShowCustom(false);
                 }}
                 className={cn(
-                  "rounded-lg border px-2 py-1.5 text-xs transition-colors",
+                  "rounded-lg border px-2 py-1.5 text-xs font-medium transition-all",
                   selectedRole === role && !showCustom
-                    ? "border-[var(--ring)] bg-[var(--primary)] text-[var(--primary-foreground)]"
-                    : "border-[var(--border)] hover:bg-[var(--accent)]"
+                    ? "border-[var(--primary)] bg-[var(--primary)] text-[var(--primary-foreground)]"
+                    : "border-[var(--border)] text-[var(--muted-foreground)] hover:border-[var(--primary)]/40 hover:bg-[var(--accent)] hover:text-[var(--foreground)]"
                 )}
               >
                 {role}
@@ -101,7 +107,6 @@ export default function PositionSelector({
           </div>
         </div>
 
-        {/* Custom role */}
         <div className="mb-4">
           {!showCustom ? (
             <button
@@ -109,7 +114,7 @@ export default function PositionSelector({
                 setShowCustom(true);
                 setSelectedRole("");
               }}
-              className="text-xs text-[var(--muted-foreground)] underline underline-offset-2 hover:text-[var(--foreground)]"
+              className="text-xs text-[var(--muted-foreground)] underline underline-offset-2 hover:text-[var(--foreground)] transition-colors"
             >
               Other role not listed...
             </button>
@@ -119,38 +124,36 @@ export default function PositionSelector({
               value={customRole}
               onChange={(e) => setCustomRole(e.target.value)}
               placeholder="Enter your role..."
-              className="w-full rounded-lg border border-[var(--border)] bg-[var(--background)] px-3 py-2 text-sm outline-none focus:ring-1 focus:ring-[var(--ring)]"
+              className={inputClass}
               autoFocus
             />
           )}
         </div>
 
-        {/* Additional context */}
         <div className="mb-5">
-          <label className="mb-1 block text-xs font-medium text-[var(--muted-foreground)]">
-            Additional context (optional)
+          <label className="mb-1.5 block text-xs font-medium text-[var(--muted-foreground)]">
+            Additional context <span className="opacity-50">(optional)</span>
           </label>
           <input
             type="text"
             value={description}
             onChange={(e) => setDescription(e.target.value)}
             placeholder="e.g. Small business owner, first-time renter, early-stage startup..."
-            className="w-full rounded-lg border border-[var(--border)] bg-[var(--background)] px-3 py-2 text-sm outline-none focus:ring-1 focus:ring-[var(--ring)]"
+            className={inputClass}
           />
         </div>
 
-        {/* Actions */}
         <div className="flex gap-2">
           <button
             onClick={onSkip}
-            className="flex-1 rounded-lg border border-[var(--border)] px-4 py-2 text-sm transition-colors hover:bg-[var(--accent)]"
+            className="flex-1 rounded-lg border border-[var(--border)] px-4 py-2 text-sm text-[var(--muted-foreground)] transition-colors hover:bg-[var(--accent)] hover:text-[var(--foreground)]"
           >
             Skip for now
           </button>
           <button
             onClick={handleSubmit}
             disabled={showCustom ? !customRole.trim() : !selectedRole}
-            className="flex-1 rounded-lg bg-[var(--primary)] px-4 py-2 text-sm text-[var(--primary-foreground)] transition-colors hover:opacity-90 disabled:opacity-30"
+            className="flex-1 rounded-lg bg-[var(--primary)] px-4 py-2 text-sm font-semibold text-[var(--primary-foreground)] transition-all hover:opacity-90 disabled:opacity-30"
           >
             Continue
           </button>

@@ -273,16 +273,16 @@ export default function DocumentViewer({
       <div className="flex h-full flex-col">
         {/* Active refs bar for DOCX */}
         {activeRefs.length > 0 && (
-          <div className="flex items-center gap-2 border-b border-[var(--border)] bg-indigo-50 dark:bg-indigo-950/30 px-3 py-1.5 overflow-x-auto">
-            <BookOpen className="h-3.5 w-3.5 shrink-0 text-indigo-500" />
-            <span className="shrink-0 text-[10px] font-medium text-indigo-600 dark:text-indigo-400">
+          <div className="flex items-center gap-2 border-b border-[var(--border)] bg-[var(--muted)] px-3 py-1.5 overflow-x-auto">
+            <BookOpen className="h-3.5 w-3.5 shrink-0 text-[var(--primary)]" />
+            <span className="shrink-0 text-[10px] font-medium text-[var(--primary)]">
               Referenced:
             </span>
             <div className="flex gap-1.5 flex-wrap">
               {activeRefs.map((ref) => (
                 <span
                   key={ref}
-                  className="rounded-full bg-indigo-100 dark:bg-indigo-900/50 px-2 py-0.5 text-[10px] font-medium text-indigo-700 dark:text-indigo-300"
+                  className="rounded-full bg-[var(--primary)]/15 px-2 py-0.5 text-[10px] font-medium text-[var(--primary)]"
                 >
                   {ref}
                 </span>
@@ -309,16 +309,16 @@ export default function DocumentViewer({
     return (
       <div className="flex h-full flex-col">
         {activeRefs.length > 0 && (
-          <div className="flex items-center gap-2 border-b border-[var(--border)] bg-indigo-50 dark:bg-indigo-950/30 px-3 py-1.5 overflow-x-auto">
-            <BookOpen className="h-3.5 w-3.5 shrink-0 text-indigo-500" />
-            <span className="shrink-0 text-[10px] font-medium text-indigo-600 dark:text-indigo-400">
+          <div className="flex items-center gap-2 border-b border-[var(--border)] bg-[var(--muted)] px-3 py-1.5 overflow-x-auto">
+            <BookOpen className="h-3.5 w-3.5 shrink-0 text-[var(--primary)]" />
+            <span className="shrink-0 text-[10px] font-medium text-[var(--primary)]">
               Referenced:
             </span>
             <div className="flex gap-1.5 flex-wrap">
               {activeRefs.map((ref) => (
                 <span
                   key={ref}
-                  className="rounded-full bg-indigo-100 dark:bg-indigo-900/50 px-2 py-0.5 text-[10px] font-medium text-indigo-700 dark:text-indigo-300"
+                  className="rounded-full bg-[var(--primary)]/15 px-2 py-0.5 text-[10px] font-medium text-[var(--primary)]"
                 >
                   {ref}
                 </span>
@@ -390,9 +390,9 @@ export default function DocumentViewer({
 
       {/* Active refs navigation bar */}
       {activeRefs.length > 0 && (
-        <div className="flex items-center gap-2 border-b border-[var(--border)] bg-indigo-50 dark:bg-indigo-950/30 px-3 py-1.5 overflow-x-auto">
-          <BookOpen className="h-3.5 w-3.5 shrink-0 text-indigo-500" />
-          <span className="shrink-0 text-[10px] font-medium text-indigo-600 dark:text-indigo-400">
+        <div className="flex items-center gap-2 border-b border-[var(--border)] bg-[var(--muted)] px-3 py-1.5 overflow-x-auto">
+          <BookOpen className="h-3.5 w-3.5 shrink-0 text-[var(--primary)]" />
+          <span className="shrink-0 text-[10px] font-medium text-[var(--primary)]">
             Referenced:
           </span>
           <div className="flex gap-1.5 flex-wrap">
@@ -407,8 +407,8 @@ export default function DocumentViewer({
                   className={cn(
                     "rounded-full px-2 py-0.5 text-[10px] font-medium transition-colors",
                     page === currentPage
-                      ? "bg-indigo-500 text-white"
-                      : "bg-indigo-100 dark:bg-indigo-900/50 text-indigo-700 dark:text-indigo-300 hover:bg-indigo-200 dark:hover:bg-indigo-800/50"
+                      ? "bg-[var(--primary)] text-[var(--primary-foreground)]"
+                      : "bg-[var(--primary)]/15 text-[var(--primary)] hover:bg-[var(--primary)]/25"
                   )}
                   title={page ? `Go to page ${page}` : ref}
                 >
@@ -424,7 +424,7 @@ export default function DocumentViewer({
       {/* PDF content */}
       <div
         ref={pdfContainerRef}
-        className={cn("flex-1 overflow-auto bg-gray-100 p-4")}
+        className={cn("flex-1 overflow-auto bg-[var(--muted)] p-4")}
         onMouseUp={handleTextSelection}
       >
         <div className="flex justify-center">
