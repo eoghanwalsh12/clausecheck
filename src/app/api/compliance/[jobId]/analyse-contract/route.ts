@@ -160,11 +160,14 @@ ${contractText}
         issue_summary: String(f.issueDescription || ""),
         suggested_fix: f.suggestedFix || null,
       }));
-      await auth.supabase.from("compliance_findings").insert(rows);
+      const { error: findingsError } = await auth.supabase.from("compliance_findings").insert(rows);
+      if (findingsError) {
+        console.error("compliance_findings insert error:", JSON.stringify(findingsError));
+      }
     }
 
     // Update document record
-    await auth.supabase
+    const { error: docUpdateError } = await auth.supabase
       .from("compliance_documents")
       .update({
         contract_status: contractStatus,
@@ -175,34 +178,23 @@ ${contractText}
         status: "done",
       })
       .eq("id", documentId);
+    if (docUpdateError) {
+      console.error("compliance_documents update error:", JSON.stringify(docUpdateError));
+    }
 
-    // Update job counters
-    const jobUpdate: Record<string, unknown> = {
-      contracts_done: auth.supabase.rpc, // handled below
-      updated_at: new Date().toISOString(),
-    };
-    const counterField =
-      contractStatus === "non_compliant"
-        ? "noncompliant_contracts"
-        : contractStatus === "risky"
-        ? "risky_contracts"
-        : "compliant_contracts";
-
-    // Use raw SQL increment for atomicity
-    await auth.supabase
-      .from("compliance_jobs")
-      .update({ updated_at: new Date().toISOString() })
-      .eq("id", jobId);
-
-    // Atomic increments via select+update
-    const { data: currentJob } = await auth.supabase
+    // Update job counters (read-then-write; sequential browser loop means no race)
+    const { data: currentJob, error: jobReadError } = await auth.supabase
       .from("compliance_jobs")
       .select("contracts_done, compliant_contracts, risky_contracts, noncompliant_contracts")
       .eq("id", jobId)
       .single();
 
+    if (jobReadError) {
+      console.error("compliance_jobs read error:", JSON.stringify(jobReadError));
+    }
+
     if (currentJob) {
-      await auth.supabase
+      const { error: jobUpdateError } = await auth.supabase
         .from("compliance_jobs")
         .update({
           contracts_done: (currentJob.contracts_done || 0) + 1,
@@ -221,9 +213,10 @@ ${contractText}
           updated_at: new Date().toISOString(),
         })
         .eq("id", jobId);
+      if (jobUpdateError) {
+        console.error("compliance_jobs update error:", JSON.stringify(jobUpdateError));
+      }
     }
-
-    void jobUpdate[counterField]; // suppress unused warning
 
     return NextResponse.json({
       contractStatus,
