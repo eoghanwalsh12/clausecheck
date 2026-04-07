@@ -586,20 +586,21 @@ export default function DashboardPage() {
                   </div>
                 ))}
 
-                {/* Compliance Check placeholder */}
-                <div className="mt-4 flex items-center gap-3 rounded-xl border border-dashed border-[var(--border)] px-4 py-3.5 opacity-50">
+                {/* Compliance Check */}
+                <div
+                  onClick={() => router.push(`/compliance/new?matter=${view.matter.id}`)}
+                  className="mt-4 flex cursor-pointer items-center gap-3 rounded-xl border border-dashed border-[var(--primary)]/30 px-4 py-3.5 transition-colors hover:border-[var(--primary)]/60 hover:bg-[var(--accent)]"
+                >
                   <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-[var(--border)] bg-[var(--muted)]">
-                    <MoreHorizontal className="h-4 w-4 text-[var(--muted-foreground)]" />
+                    <MoreHorizontal className="h-4 w-4 text-[var(--primary)]" />
                   </div>
                   <div>
-                    <p className="text-sm font-medium text-[var(--foreground)]">Compliance Check</p>
+                    <p className="text-sm font-medium text-[var(--foreground)]">New Compliance Check</p>
                     <p className="text-xs text-[var(--muted-foreground)]">
-                      Upload legislation and bulk-check contracts — coming soon
+                      Upload legislation and bulk-check contracts against it
                     </p>
                   </div>
-                  <span className="ml-auto rounded bg-[var(--muted)] px-2 py-0.5 text-[10px] uppercase tracking-wider text-[var(--muted-foreground)]">
-                    Soon
-                  </span>
+                  <ChevronRight className="ml-auto h-4 w-4 text-[var(--muted-foreground)]" />
                 </div>
               </div>
             )}

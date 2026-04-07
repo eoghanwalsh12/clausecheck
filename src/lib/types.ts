@@ -74,6 +74,84 @@ export interface Matter {
   project_count?: number;
 }
 
+// Compliance Check types
+export type ComplianceJobStatus =
+  | 'pending' | 'uploading' | 'extracting' | 'analysing' | 'complete' | 'error';
+
+export type ComplianceTier = 'non_compliant' | 'risky' | 'compliant';
+
+export type ComplianceRiskBasis = 'interpretive' | 'future_legislation' | 'ambiguous_drafting';
+
+export type ComplianceTopicArea =
+  | 'Data Processing' | 'Liability' | 'Termination' | 'Intellectual Property'
+  | 'Confidentiality' | 'Payment Terms' | 'Dispute Resolution' | 'Employment'
+  | 'Regulatory' | 'Other';
+
+export type ContractStatus = 'compliant' | 'risky' | 'non_compliant';
+
+export interface ComplianceJob {
+  id: string;
+  user_id: string;
+  matter_id?: string;
+  name: string;
+  legislation_name: string;
+  status: ComplianceJobStatus;
+  error_message?: string;
+  requirements_count: number;
+  total_contracts: number;
+  contracts_done: number;
+  compliant_contracts: number;
+  risky_contracts: number;
+  noncompliant_contracts: number;
+  created_at: string;
+  updated_at: string;
+}
+
+export type ComplianceDocType = 'legislation' | 'contract';
+
+export interface ComplianceDocument {
+  id: string;
+  job_id: string;
+  user_id: string;
+  doc_type: ComplianceDocType;
+  file_name: string;
+  file_type: 'pdf' | 'docx';
+  storage_path: string;
+  char_count?: number;
+  contract_status?: ContractStatus;
+  contract_summary?: string;
+  noncompliant_count: number;
+  risky_count: number;
+  compliant_count: number;
+  status: 'pending' | 'done' | 'error';
+  created_at: string;
+}
+
+export interface ComplianceRequirement {
+  id: string;
+  job_id: string;
+  user_id: string;
+  legislation_doc_id?: string;
+  article_ref: string;
+  requirement_text: string;
+  obligation_type?: 'obligation' | 'prohibition' | 'right' | 'definition' | 'procedure';
+}
+
+export interface ComplianceFinding {
+  id: string;
+  job_id: string;
+  contract_doc_id: string;
+  user_id: string;
+  compliance_tier: ComplianceTier;
+  risk_basis?: ComplianceRiskBasis;
+  topic_area?: ComplianceTopicArea;
+  clause_text?: string;
+  legislation_ref: string;
+  issue_summary: string;
+  suggested_fix?: string;
+  created_at: string;
+}
+
 // Delivery feature types
 export type DeliverableAudience = 'client' | 'partner';
 

@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { Scale, FolderOpen, LogOut, Settings } from "lucide-react";
+import { Scale, FolderOpen, LogOut, Settings, ShieldCheck } from "lucide-react";
 import { useAuth } from "@/lib/auth-context";
 import AuthModal from "./auth-modal";
 
@@ -32,7 +32,14 @@ export default function NavBar() {
                   className="flex items-center gap-1.5 rounded-md border border-[var(--border)] px-3 py-1.5 text-sm text-[var(--muted-foreground)] transition-colors hover:border-[var(--primary)]/40 hover:text-[var(--foreground)]"
                 >
                   <FolderOpen className="h-3.5 w-3.5" />
-                  Projects
+                  Clients
+                </Link>
+                <Link
+                  href="/compliance"
+                  className="flex items-center gap-1.5 rounded-md border border-[var(--border)] px-3 py-1.5 text-sm text-[var(--muted-foreground)] transition-colors hover:border-[var(--primary)]/40 hover:text-[var(--foreground)]"
+                >
+                  <ShieldCheck className="h-3.5 w-3.5" />
+                  Compliance
                 </Link>
                 <Link
                   href="/workspace"

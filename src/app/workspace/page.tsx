@@ -176,6 +176,7 @@ function WorkspaceContent() {
   );
 
   const handleFileUpload = useCallback(
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     async (file: File) => {
       setError("");
       setIsUploading(true);
