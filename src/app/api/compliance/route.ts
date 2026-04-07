@@ -66,11 +66,19 @@ export async function GET(request: NextRequest) {
     const auth = await getAuthenticatedUser(request);
     if (!auth) return unauthorizedResponse();
 
-    const { data, error } = await auth.supabase
+    const matterId = request.nextUrl.searchParams.get("matterId");
+
+    let query = auth.supabase
       .from("compliance_jobs")
       .select("*")
       .eq("user_id", auth.user.id)
       .order("created_at", { ascending: false });
+
+    if (matterId && isValidUUID(matterId)) {
+      query = query.eq("matter_id", matterId);
+    }
+
+    const { data, error } = await query;
 
     if (error) throw error;
 

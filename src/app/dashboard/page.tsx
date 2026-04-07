@@ -16,11 +16,12 @@ import {
   UserRound,
   StickyNote,
   FolderOpen,
-  MoreHorizontal,
+  ShieldCheck,
+  ExternalLink,
 } from "lucide-react";
 import { useAuth } from "@/lib/auth-context";
 import { supabase } from "@/lib/supabase";
-import type { Client, Matter } from "@/lib/types";
+import type { Client, Matter, ComplianceJob } from "@/lib/types";
 import CreateClientModal from "@/components/create-client-modal";
 import CreateMatterModal from "@/components/create-matter-modal";
 
@@ -70,6 +71,7 @@ export default function DashboardPage() {
   const [deleting, setDeleting] = useState<string | null>(null);
   const [showCreateClient, setShowCreateClient] = useState(false);
   const [showCreateMatter, setShowCreateMatter] = useState(false);
+  const [complianceJobs, setComplianceJobs] = useState<ComplianceJob[]>([]);
 
   const getToken = useCallback(async () => {
     return (await supabase.auth.getSession()).data.session?.access_token;
@@ -121,12 +123,18 @@ export default function DashboardPage() {
 
   const openMatter = useCallback(async (client: Client, matter: Matter) => {
     const token = await getToken();
-    const res = await fetch(`/api/matters/${matter.id}`, {
-      headers: { Authorization: `Bearer ${token}` },
-    });
-    if (res.ok) {
-      const data = await res.json();
+    const [matterRes, jobsRes] = await Promise.all([
+      fetch(`/api/matters/${matter.id}`, { headers: { Authorization: `Bearer ${token}` } }),
+      fetch(`/api/compliance?matterId=${matter.id}`, { headers: { Authorization: `Bearer ${token}` } }),
+    ]);
+    if (matterRes.ok) {
+      const data = await matterRes.json();
       setView({ type: "matter", client, matter: data });
+    }
+    if (jobsRes.ok) {
+      setComplianceJobs(await jobsRes.json());
+    } else {
+      setComplianceJobs([]);
     }
   }, [getToken]);
 
@@ -514,95 +522,193 @@ export default function DashboardPage() {
                 </p>
               )}
             </div>
-            <button
-              onClick={() => router.push(`/workspace?matter=${view.matter.id}`)}
-              className="inline-flex shrink-0 items-center gap-2 rounded-lg bg-[var(--primary)] px-4 py-2.5 text-sm font-semibold text-[var(--primary-foreground)] transition-all hover:opacity-90"
-            >
-              <Plus className="h-4 w-4" />
-              Add Document
-            </button>
+            {view.matter.matter_type === "compliance_check" ? (
+              <button
+                onClick={() => router.push(`/compliance/new?matter=${view.matter.id}`)}
+                className="inline-flex shrink-0 items-center gap-2 rounded-lg bg-[var(--primary)] px-4 py-2.5 text-sm font-semibold text-[var(--primary-foreground)] transition-all hover:opacity-90"
+              >
+                <Plus className="h-4 w-4" />
+                New Check
+              </button>
+            ) : (
+              <button
+                onClick={() => router.push(`/workspace?matter=${view.matter.id}`)}
+                className="inline-flex shrink-0 items-center gap-2 rounded-lg bg-[var(--primary)] px-4 py-2.5 text-sm font-semibold text-[var(--primary-foreground)] transition-all hover:opacity-90"
+              >
+                <Plus className="h-4 w-4" />
+                Add Document
+              </button>
+            )}
           </div>
 
           <div className="mt-8">
-            {view.matter.projects.length === 0 ? (
-              <div className="mt-8 text-center">
-                <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-xl border border-[var(--border)] bg-[var(--card)]">
-                  <FileText className="h-6 w-6 text-[var(--muted-foreground)]" />
-                </div>
-                <p className="mt-4 text-sm font-medium text-[var(--foreground)]">No documents yet</p>
-                <p className="mt-1 text-sm text-[var(--muted-foreground)]">
-                  Upload a document to begin analysis.
-                </p>
-                <button
-                  onClick={() => router.push(`/workspace?matter=${view.matter.id}`)}
-                  className="mt-5 inline-flex items-center gap-2 rounded-lg bg-[var(--primary)] px-5 py-2.5 text-sm font-semibold text-[var(--primary-foreground)] transition-all hover:opacity-90"
-                >
-                  <Plus className="h-4 w-4" />
-                  Add Document
-                </button>
-              </div>
-            ) : (
-              <div className="space-y-1.5">
-                {view.matter.projects.map((project) => (
-                  <div
-                    key={project.id}
-                    onClick={() => router.push(`/workspace?project=${project.id}`)}
-                    className="group flex cursor-pointer items-center justify-between rounded-xl border border-[var(--border)] bg-[var(--card)] px-4 py-3.5 transition-all hover:border-[var(--primary)]/30 hover:bg-[var(--accent)]"
+            {view.matter.matter_type === "compliance_check" ? (
+              /* ── COMPLIANCE MATTER VIEW ── */
+              complianceJobs.length === 0 ? (
+                <div className="mt-8 text-center">
+                  <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-xl border border-[var(--border)] bg-[var(--card)]">
+                    <ShieldCheck className="h-6 w-6 text-[var(--muted-foreground)]" />
+                  </div>
+                  <p className="mt-4 text-sm font-medium text-[var(--foreground)]">No compliance checks yet</p>
+                  <p className="mt-1 text-sm text-[var(--muted-foreground)]">
+                    Upload legislation and contracts to run a compliance check.
+                  </p>
+                  <button
+                    onClick={() => router.push(`/compliance/new?matter=${view.matter.id}`)}
+                    className="mt-5 inline-flex items-center gap-2 rounded-lg bg-[var(--primary)] px-5 py-2.5 text-sm font-semibold text-[var(--primary-foreground)] transition-all hover:opacity-90"
                   >
-                    <div className="flex items-center gap-3 min-w-0">
-                      <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-[var(--border)] bg-[var(--muted)]">
-                        <FileText className="h-4 w-4 text-[var(--muted-foreground)]" />
+                    <Plus className="h-4 w-4" />
+                    New Compliance Check
+                  </button>
+                </div>
+              ) : (
+                <div className="space-y-1.5">
+                  {complianceJobs.map((job) => {
+                    const total = job.total_contracts ?? 0;
+                    const done = job.contracts_done ?? 0;
+                    const compliant = job.compliant_contracts ?? 0;
+                    const complianceRate = total > 0 ? Math.round((compliant / total) * 100) : null;
+                    return (
+                      <div
+                        key={job.id}
+                        onClick={() => router.push(`/compliance/${job.id}`)}
+                        className="group flex cursor-pointer items-center justify-between rounded-xl border border-[var(--border)] bg-[var(--card)] px-4 py-3.5 transition-all hover:border-[var(--primary)]/30 hover:bg-[var(--accent)]"
+                      >
+                        <div className="flex items-center gap-3 min-w-0">
+                          <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-[var(--border)] bg-[var(--muted)]">
+                            <ShieldCheck className="h-4 w-4 text-[var(--primary)]/70" />
+                          </div>
+                          <div className="min-w-0">
+                            <p className="truncate text-sm font-medium text-[var(--foreground)]">
+                              {job.name}
+                            </p>
+                            <div className="mt-0.5 flex items-center gap-3 text-xs text-[var(--muted-foreground)]">
+                              <span>{job.legislation_name}</span>
+                              {job.status === "complete" ? (
+                                <>
+                                  <span className="flex items-center gap-1">
+                                    <FileText className="h-3 w-3" />
+                                    {total} contracts
+                                  </span>
+                                  {complianceRate !== null && (
+                                    <span
+                                      className={`font-medium ${
+                                        complianceRate >= 80
+                                          ? "text-emerald-500"
+                                          : complianceRate >= 50
+                                          ? "text-amber-500"
+                                          : "text-red-500"
+                                      }`}
+                                    >
+                                      {complianceRate}% compliant
+                                    </span>
+                                  )}
+                                </>
+                              ) : job.status === "analysing" || job.status === "extracting" ? (
+                                <span className="flex items-center gap-1 text-amber-500">
+                                  <Loader2 className="h-3 w-3 animate-spin" />
+                                  {done}/{total} contracts
+                                </span>
+                              ) : (
+                                <span className="rounded bg-[var(--muted)] px-1.5 py-0.5 text-[10px] uppercase tracking-wider">
+                                  {job.status}
+                                </span>
+                              )}
+                              <span className="flex items-center gap-1">
+                                <Clock className="h-3 w-3" />
+                                {formatDate(job.created_at)}
+                              </span>
+                            </div>
+                          </div>
+                        </div>
+                        <ExternalLink className="h-4 w-4 shrink-0 text-[var(--muted-foreground)] opacity-0 transition-opacity group-hover:opacity-100" />
                       </div>
-                      <div className="min-w-0">
-                        <p className="truncate text-sm font-medium text-[var(--foreground)]">
-                          {project.file_name}
-                        </p>
-                        <div className="mt-0.5 flex items-center gap-3 text-xs text-[var(--muted-foreground)]">
-                          <span className="flex items-center gap-1">
-                            <Clock className="h-3 w-3" />
-                            {formatDate(project.updated_at)}
-                          </span>
-                          <span className="rounded bg-[var(--muted)] px-1.5 py-0.5 text-[10px] uppercase tracking-wider">
-                            {project.file_type}
-                          </span>
+                    );
+                  })}
+                </div>
+              )
+            ) : (
+              /* ── REGULAR MATTER VIEW ── */
+              view.matter.projects.length === 0 ? (
+                <div className="mt-8 text-center">
+                  <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-xl border border-[var(--border)] bg-[var(--card)]">
+                    <FileText className="h-6 w-6 text-[var(--muted-foreground)]" />
+                  </div>
+                  <p className="mt-4 text-sm font-medium text-[var(--foreground)]">No documents yet</p>
+                  <p className="mt-1 text-sm text-[var(--muted-foreground)]">
+                    Upload a document to begin analysis.
+                  </p>
+                  <button
+                    onClick={() => router.push(`/workspace?matter=${view.matter.id}`)}
+                    className="mt-5 inline-flex items-center gap-2 rounded-lg bg-[var(--primary)] px-5 py-2.5 text-sm font-semibold text-[var(--primary-foreground)] transition-all hover:opacity-90"
+                  >
+                    <Plus className="h-4 w-4" />
+                    Add Document
+                  </button>
+                </div>
+              ) : (
+                <div className="space-y-1.5">
+                  {view.matter.projects.map((project) => (
+                    <div
+                      key={project.id}
+                      onClick={() => router.push(`/workspace?project=${project.id}`)}
+                      className="group flex cursor-pointer items-center justify-between rounded-xl border border-[var(--border)] bg-[var(--card)] px-4 py-3.5 transition-all hover:border-[var(--primary)]/30 hover:bg-[var(--accent)]"
+                    >
+                      <div className="flex items-center gap-3 min-w-0">
+                        <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-[var(--border)] bg-[var(--muted)]">
+                          <FileText className="h-4 w-4 text-[var(--muted-foreground)]" />
+                        </div>
+                        <div className="min-w-0">
+                          <p className="truncate text-sm font-medium text-[var(--foreground)]">
+                            {project.file_name}
+                          </p>
+                          <div className="mt-0.5 flex items-center gap-3 text-xs text-[var(--muted-foreground)]">
+                            <span className="flex items-center gap-1">
+                              <Clock className="h-3 w-3" />
+                              {formatDate(project.updated_at)}
+                            </span>
+                            <span className="rounded bg-[var(--muted)] px-1.5 py-0.5 text-[10px] uppercase tracking-wider">
+                              {project.file_type}
+                            </span>
+                          </div>
                         </div>
                       </div>
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleDeleteProject(project.id);
+                        }}
+                        disabled={deleting === project.id}
+                        className="rounded-md p-1.5 text-[var(--muted-foreground)] opacity-0 transition-all hover:bg-[var(--destructive)]/15 hover:text-[var(--destructive)] group-hover:opacity-100"
+                        title="Delete document"
+                      >
+                        {deleting === project.id ? (
+                          <Loader2 className="h-4 w-4 animate-spin" />
+                        ) : (
+                          <Trash2 className="h-4 w-4" />
+                        )}
+                      </button>
                     </div>
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleDeleteProject(project.id);
-                      }}
-                      disabled={deleting === project.id}
-                      className="rounded-md p-1.5 text-[var(--muted-foreground)] opacity-0 transition-all hover:bg-[var(--destructive)]/15 hover:text-[var(--destructive)] group-hover:opacity-100"
-                      title="Delete document"
-                    >
-                      {deleting === project.id ? (
-                        <Loader2 className="h-4 w-4 animate-spin" />
-                      ) : (
-                        <Trash2 className="h-4 w-4" />
-                      )}
-                    </button>
-                  </div>
-                ))}
+                  ))}
 
-                {/* Compliance Check */}
-                <div
-                  onClick={() => router.push(`/compliance/new?matter=${view.matter.id}`)}
-                  className="mt-4 flex cursor-pointer items-center gap-3 rounded-xl border border-dashed border-[var(--primary)]/30 px-4 py-3.5 transition-colors hover:border-[var(--primary)]/60 hover:bg-[var(--accent)]"
-                >
-                  <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-[var(--border)] bg-[var(--muted)]">
-                    <MoreHorizontal className="h-4 w-4 text-[var(--primary)]" />
+                  {/* Compliance Check secondary action */}
+                  <div
+                    onClick={() => router.push(`/compliance/new?matter=${view.matter.id}`)}
+                    className="mt-4 flex cursor-pointer items-center gap-3 rounded-xl border border-dashed border-[var(--primary)]/30 px-4 py-3.5 transition-colors hover:border-[var(--primary)]/60 hover:bg-[var(--accent)]"
+                  >
+                    <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-[var(--border)] bg-[var(--muted)]">
+                      <ShieldCheck className="h-4 w-4 text-[var(--primary)]" />
+                    </div>
+                    <div>
+                      <p className="text-sm font-medium text-[var(--foreground)]">New Compliance Check</p>
+                      <p className="text-xs text-[var(--muted-foreground)]">
+                        Bulk-check contracts against legislation
+                      </p>
+                    </div>
+                    <ChevronRight className="ml-auto h-4 w-4 text-[var(--muted-foreground)]" />
                   </div>
-                  <div>
-                    <p className="text-sm font-medium text-[var(--foreground)]">New Compliance Check</p>
-                    <p className="text-xs text-[var(--muted-foreground)]">
-                      Upload legislation and bulk-check contracts against it
-                    </p>
-                  </div>
-                  <ChevronRight className="ml-auto h-4 w-4 text-[var(--muted-foreground)]" />
                 </div>
-              </div>
+              )
             )}
           </div>
         </>

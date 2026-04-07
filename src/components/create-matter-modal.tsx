@@ -15,7 +15,7 @@ interface Props {
 const MATTER_TYPES: { value: MatterType; label: string; description: string }[] = [
   { value: "analysis", label: "Contract Analysis", description: "Review and analyse individual contracts" },
   { value: "due_diligence", label: "Due Diligence", description: "Multi-document review for transactions" },
-  { value: "compliance_check", label: "Compliance Check", description: "Check contracts against legislation (coming soon)" },
+  { value: "compliance_check", label: "Compliance Check", description: "Bulk-check contracts against legislation" },
 ];
 
 export default function CreateMatterModal({ clientId, clientName, onClose, onCreated, getToken }: Props) {
@@ -115,26 +115,18 @@ export default function CreateMatterModal({ clientId, clientName, onClose, onCre
                     matterType === type.value
                       ? "border-[var(--primary)]/40 bg-[var(--primary)]/5"
                       : "border-[var(--border)] hover:bg-[var(--accent)]"
-                  } ${type.value === "compliance_check" ? "opacity-50 cursor-not-allowed" : ""}`}
+                  }`}
                 >
                   <input
                     type="radio"
                     name="matterType"
                     value={type.value}
                     checked={matterType === type.value}
-                    onChange={() => type.value !== "compliance_check" && setMatterType(type.value)}
-                    disabled={type.value === "compliance_check"}
+                    onChange={() => setMatterType(type.value)}
                     className="mt-0.5 accent-[var(--primary)]"
                   />
                   <div className="min-w-0">
-                    <div className="flex items-center gap-2">
-                      <span className="text-sm font-medium text-[var(--foreground)]">{type.label}</span>
-                      {type.value === "compliance_check" && (
-                        <span className="rounded bg-[var(--muted)] px-1.5 py-0.5 text-[10px] uppercase tracking-wider text-[var(--muted-foreground)]">
-                          Soon
-                        </span>
-                      )}
-                    </div>
+                    <span className="text-sm font-medium text-[var(--foreground)]">{type.label}</span>
                     <p className="text-xs text-[var(--muted-foreground)]">{type.description}</p>
                   </div>
                 </label>
