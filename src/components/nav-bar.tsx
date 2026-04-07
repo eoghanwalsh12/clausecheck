@@ -29,14 +29,14 @@ export default function NavBar() {
               <>
                 <Link
                   href="/dashboard"
-                  className="flex items-center gap-1.5 text-sm text-[var(--muted-foreground)] transition-colors hover:text-[var(--foreground)]"
+                  className="flex items-center gap-1.5 rounded-md border border-[var(--border)] px-3 py-1.5 text-sm text-[var(--muted-foreground)] transition-colors hover:border-[var(--primary)]/40 hover:text-[var(--foreground)]"
                 >
                   <FolderOpen className="h-3.5 w-3.5" />
                   Projects
                 </Link>
                 <Link
                   href="/workspace"
-                  className="text-sm text-[var(--muted-foreground)] transition-colors hover:text-[var(--foreground)]"
+                  className="flex items-center rounded-md border border-[var(--border)] px-3 py-1.5 text-sm text-[var(--muted-foreground)] transition-colors hover:border-[var(--primary)]/40 hover:text-[var(--foreground)]"
                 >
                   New
                 </Link>
