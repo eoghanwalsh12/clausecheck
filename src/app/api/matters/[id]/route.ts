@@ -3,7 +3,7 @@ import { getAuthenticatedUser, unauthorizedResponse } from "@/lib/supabase-serve
 import { checkRateLimit, rateLimitResponse } from "@/lib/rate-limit";
 import { isValidUUID, safeErrorMessage } from "@/lib/validation";
 
-// GET /api/projects/[id] — load a project
+// GET /api/matters/[id] — fetch matter with its projects
 export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
@@ -11,39 +11,46 @@ export async function GET(
   try {
     const { id } = await params;
     if (!isValidUUID(id)) {
-      return NextResponse.json({ error: "Invalid project ID" }, { status: 400 });
+      return NextResponse.json({ error: "Invalid matter ID" }, { status: 400 });
     }
 
     const auth = await getAuthenticatedUser(request);
     if (!auth) return unauthorizedResponse();
 
-    if (!checkRateLimit(`projects:${auth.user.id}`, 60)) {
+    if (!checkRateLimit(`matters:${auth.user.id}`, 60)) {
       return rateLimitResponse();
     }
 
-    const { data, error } = await auth.supabase
-      .from("projects")
+    const { data: matter, error: matterError } = await auth.supabase
+      .from("matters")
       .select("*")
       .eq("id", id)
       .eq("user_id", auth.user.id)
       .single();
 
-    if (error) throw error;
-    if (!data) {
-      return NextResponse.json({ error: "Project not found" }, { status: 404 });
-    }
+    if (matterError) throw matterError;
+    if (!matter) return NextResponse.json({ error: "Matter not found" }, { status: 404 });
 
-    return NextResponse.json(data);
+    const { data: projects, error: projectsError } = await auth.supabase
+      .from("projects")
+      .select("id, file_name, file_type, position_role, updated_at, created_at")
+      .eq("matter_id", id)
+      .eq("user_id", auth.user.id)
+      .order("updated_at", { ascending: false });
+
+    if (projectsError) throw projectsError;
+
+    return NextResponse.json({ ...matter, projects: projects ?? [] });
   } catch (error) {
-    console.error("Get project error:", error);
+    console.error("Get matter error:", error);
     return NextResponse.json(
-      { error: safeErrorMessage(error, "Failed to load project") },
+      { error: safeErrorMessage(error, "Failed to load matter") },
       { status: 500 }
     );
   }
 }
 
-// PATCH /api/projects/[id] — update project (chat history, position, etc.)
+// PATCH /api/matters/[id] — update matter
 export async function PATCH(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
@@ -51,26 +58,26 @@ export async function PATCH(
   try {
     const { id } = await params;
     if (!isValidUUID(id)) {
-      return NextResponse.json({ error: "Invalid project ID" }, { status: 400 });
+      return NextResponse.json({ error: "Invalid matter ID" }, { status: 400 });
     }
 
     const auth = await getAuthenticatedUser(request);
     if (!auth) return unauthorizedResponse();
 
-    if (!checkRateLimit(`projects:${auth.user.id}`, 60)) {
+    if (!checkRateLimit(`matters:${auth.user.id}`, 60)) {
       return rateLimitResponse();
     }
 
     const body = await request.json();
     const updates: Record<string, unknown> = { updated_at: new Date().toISOString() };
 
-    if (body.chatHistory !== undefined) updates.chat_history = body.chatHistory;
-    if (body.positionRole !== undefined) updates.position_role = body.positionRole;
-    if (body.positionDescription !== undefined) updates.position_description = body.positionDescription;
-    if (body.matterId !== undefined) updates.matter_id = body.matterId || null;
+    if (body.name !== undefined) updates.name = body.name.trim();
+    if (body.description !== undefined) updates.description = body.description?.trim() || null;
+    if (body.status !== undefined) updates.status = body.status;
+    if (body.matterType !== undefined) updates.matter_type = body.matterType;
 
     const { error } = await auth.supabase
-      .from("projects")
+      .from("matters")
       .update(updates)
       .eq("id", id)
       .eq("user_id", auth.user.id);
@@ -79,15 +86,15 @@ export async function PATCH(
 
     return NextResponse.json({ success: true });
   } catch (error) {
-    console.error("Update project error:", error);
+    console.error("Update matter error:", error);
     return NextResponse.json(
-      { error: safeErrorMessage(error, "Failed to update project") },
+      { error: safeErrorMessage(error, "Failed to update matter") },
       { status: 500 }
     );
   }
 }
 
-// DELETE /api/projects/[id] — delete a project
+// DELETE /api/matters/[id] — delete matter (projects get matter_id = null via SET NULL)
 export async function DELETE(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
@@ -95,44 +102,29 @@ export async function DELETE(
   try {
     const { id } = await params;
     if (!isValidUUID(id)) {
-      return NextResponse.json({ error: "Invalid project ID" }, { status: 400 });
+      return NextResponse.json({ error: "Invalid matter ID" }, { status: 400 });
     }
 
     const auth = await getAuthenticatedUser(request);
     if (!auth) return unauthorizedResponse();
 
-    if (!checkRateLimit(`projects:${auth.user.id}`, 60)) {
+    if (!checkRateLimit(`matters:${auth.user.id}`, 60)) {
       return rateLimitResponse();
     }
 
-    // Get project details for storage cleanup
-    const { data: project } = await auth.supabase
-      .from("projects")
-      .select("file_name")
-      .eq("id", id)
-      .eq("user_id", auth.user.id)
-      .single();
-
     const { error } = await auth.supabase
-      .from("projects")
+      .from("matters")
       .delete()
       .eq("id", id)
       .eq("user_id", auth.user.id);
 
     if (error) throw error;
 
-    // Clean up stored file
-    if (project?.file_name) {
-      await auth.supabase.storage
-        .from("documents")
-        .remove([`${auth.user.id}/${id}/${project.file_name}`]);
-    }
-
     return NextResponse.json({ success: true });
   } catch (error) {
-    console.error("Delete project error:", error);
+    console.error("Delete matter error:", error);
     return NextResponse.json(
-      { error: safeErrorMessage(error, "Failed to delete project") },
+      { error: safeErrorMessage(error, "Failed to delete matter") },
       { status: 500 }
     );
   }

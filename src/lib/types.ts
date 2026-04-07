@@ -46,6 +46,34 @@ export interface UserPosition {
   customDescription?: string; // optional extra context
 }
 
+// Client & Matter types
+export type MatterType = 'analysis' | 'compliance_check' | 'due_diligence';
+
+export interface Client {
+  id: string;
+  user_id: string;
+  name: string;
+  contact_name?: string;
+  company_type?: string;
+  notes?: string;
+  created_at: string;
+  updated_at: string;
+  matter_count?: number;
+}
+
+export interface Matter {
+  id: string;
+  client_id: string;
+  user_id: string;
+  name: string;
+  description?: string;
+  matter_type: MatterType;
+  status: string;
+  created_at: string;
+  updated_at: string;
+  project_count?: number;
+}
+
 // Delivery feature types
 export type DeliverableAudience = 'client' | 'partner';
 

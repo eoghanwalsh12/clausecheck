@@ -48,6 +48,7 @@ function WorkspaceContent() {
   const searchParams = useSearchParams();
   const { user } = useAuth();
   const projectId = searchParams.get("project");
+  const matterId = searchParams.get("matter");
 
   const [document, setDocument] = useState<DocumentContext | null>(null);
   const [position, setPosition] = useState<UserPosition | null>(null);
@@ -221,6 +222,7 @@ function WorkspaceContent() {
                 documentText: text,
                 htmlContent: htmlContent || null,
                 fileType,
+                matterId: matterId || null,
               }),
             });
             if (res.ok) {

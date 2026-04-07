@@ -13,11 +13,19 @@ export async function GET(request: NextRequest) {
       return rateLimitResponse();
     }
 
-    const { data, error } = await auth.supabase
+    const matterId = request.nextUrl.searchParams.get("matterId");
+
+    let query = auth.supabase
       .from("projects")
-      .select("id, file_name, file_type, position_role, updated_at, created_at")
+      .select("id, file_name, file_type, position_role, matter_id, updated_at, created_at")
       .eq("user_id", auth.user.id)
       .order("updated_at", { ascending: false });
+
+    if (matterId) {
+      query = query.eq("matter_id", matterId);
+    }
+
+    const { data, error } = await query;
 
     if (error) throw error;
 
@@ -42,7 +50,7 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json();
-    const { fileName, documentText, htmlContent, fileType, positionRole, positionDescription } =
+    const { fileName, documentText, htmlContent, fileType, positionRole, positionDescription, matterId } =
       body;
 
     if (!fileName || !documentText || !fileType) {
@@ -59,6 +67,7 @@ export async function POST(request: NextRequest) {
         file_type: fileType,
         position_role: positionRole || null,
         position_description: positionDescription || null,
+        matter_id: matterId || null,
         chat_history: [],
       })
       .select("id")

@@ -156,3 +156,58 @@ create policy "Users can delete own deliverables"
 
 create index deliverables_project_id on public.deliverables(project_id, created_at desc);
 create index deliverables_user_id on public.deliverables(user_id, updated_at desc);
+
+-- ============================================================
+-- CLIENTS & MATTERS (v2 — run as a migration if schema exists)
+-- ============================================================
+
+-- Clients
+create table public.clients (
+  id           uuid primary key default gen_random_uuid(),
+  user_id      uuid references auth.users(id) on delete cascade not null,
+  name         text not null,
+  contact_name text,
+  company_type text,
+  notes        text,
+  created_at   timestamptz default now(),
+  updated_at   timestamptz default now()
+);
+
+alter table public.clients enable row level security;
+
+create policy "Users manage own clients"
+  on public.clients
+  using (auth.uid() = user_id)
+  with check (auth.uid() = user_id);
+
+create index clients_user_id on public.clients(user_id);
+
+-- Matter type enum
+create type matter_type as enum ('analysis', 'compliance_check', 'due_diligence');
+
+-- Matters
+create table public.matters (
+  id          uuid primary key default gen_random_uuid(),
+  client_id   uuid references public.clients(id) on delete cascade not null,
+  user_id     uuid references auth.users(id) on delete cascade not null,
+  name        text not null,
+  description text,
+  matter_type matter_type not null default 'analysis',
+  status      text default 'active',
+  created_at  timestamptz default now(),
+  updated_at  timestamptz default now()
+);
+
+alter table public.matters enable row level security;
+
+create policy "Users manage own matters"
+  on public.matters
+  using (auth.uid() = user_id)
+  with check (auth.uid() = user_id);
+
+create index matters_client_id on public.matters(client_id);
+create index matters_user_id on public.matters(user_id);
+
+-- Link projects to matters (nullable — existing projects are uncategorised)
+alter table public.projects add column matter_id uuid references public.matters(id) on delete set null;
+create index projects_matter_id on public.projects(matter_id);
