@@ -18,6 +18,7 @@ import { cn } from "@/lib/utils";
 import type { DocumentContext, UserPosition, ChatMessage } from "@/lib/types";
 import { useAuth } from "@/lib/auth-context";
 import { supabase } from "@/lib/supabase";
+import { isFileTooLarge } from "@/lib/validation";
 import WorkspaceSidebar from "@/components/workspace-sidebar";
 import PositionSelector from "@/components/position-selector";
 
@@ -182,29 +183,41 @@ function WorkspaceContent() {
       setIsUploading(true);
 
       try {
-        const formData = new FormData();
-        formData.append("file", file);
-
-        const session = (await supabase.auth.getSession()).data.session;
-        const response = await fetch("/api/parse", {
-          method: "POST",
-          headers: { Authorization: `Bearer ${session?.access_token}` },
-          body: formData,
-        });
-
-        if (!response.ok) {
-          const contentType = response.headers.get("content-type") || "";
-          if (contentType.includes("application/json")) {
-            const data = await response.json();
-            throw new Error(data.error || "Failed to parse document");
-          }
-          if (response.status === 413) {
-            throw new Error("File is too large. Please upload a file under 10 MB.");
-          }
-          throw new Error(`Failed to parse document (${response.status})`);
+        if (isFileTooLarge(file)) {
+          throw new Error("File exceeds the 10 MB limit.");
         }
 
-        const { text, htmlContent } = await response.json();
+        const isPDF = file.name.toLowerCase().endsWith(".pdf");
+        let text = "";
+        let htmlContent: string | undefined;
+
+        if (isPDF) {
+          const { extractTextFromPDF } = await import("@/lib/parse-pdf-client");
+          text = await extractTextFromPDF(file);
+          if (text.trim().length < 50) {
+            throw new Error(
+              "Could not extract enough text from this PDF. It may be a scanned image without selectable text."
+            );
+          }
+        } else {
+          const formData = new FormData();
+          formData.append("file", file);
+          const session = (await supabase.auth.getSession()).data.session;
+          const response = await fetch("/api/parse", {
+            method: "POST",
+            headers: { Authorization: `Bearer ${session?.access_token}` },
+            body: formData,
+          });
+          if (!response.ok) {
+            const contentType = response.headers.get("content-type") || "";
+            if (contentType.includes("application/json")) {
+              const data = await response.json();
+              throw new Error(data.error || "Failed to parse document");
+            }
+            throw new Error(`Failed to parse document (${response.status})`);
+          }
+          ({ text, htmlContent } = await response.json());
+        }
         const fileUrl = URL.createObjectURL(file);
         const fileType = file.name.toLowerCase().endsWith(".pdf") ? "pdf" : "docx";
 
