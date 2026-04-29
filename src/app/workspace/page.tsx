@@ -193,8 +193,15 @@ function WorkspaceContent() {
         });
 
         if (!response.ok) {
-          const data = await response.json();
-          throw new Error(data.error || "Failed to parse document");
+          const contentType = response.headers.get("content-type") || "";
+          if (contentType.includes("application/json")) {
+            const data = await response.json();
+            throw new Error(data.error || "Failed to parse document");
+          }
+          if (response.status === 413) {
+            throw new Error("File is too large. Please upload a file under 10 MB.");
+          }
+          throw new Error(`Failed to parse document (${response.status})`);
         }
 
         const { text, htmlContent } = await response.json();

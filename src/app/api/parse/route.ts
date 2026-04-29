@@ -1,4 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
+
+export const maxDuration = 30;
+export const dynamic = "force-dynamic";
 import { getAuthenticatedUser, unauthorizedResponse } from "@/lib/supabase-server";
 import { checkRateLimit, rateLimitResponse } from "@/lib/rate-limit";
 import { isFileTooLarge } from "@/lib/validation";
